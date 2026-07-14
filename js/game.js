@@ -63,7 +63,7 @@
     player.rotation.z = 0; player.scale.y = 1;
 
     speed = BASE_SPEED; distance = 0; trophyCount = 0;
-    nextSpawnGap = 22;
+    nextSpawnGap = 24;
     // pre-fill the visible track (leaving a short runway) so it never runs empty
     let z = SPAWN_Z;
     while (z < -20) { spawnChunk(z); z += nextSpawnGap; nextSpawnGap = 16 + Math.random() * 12; }
@@ -98,24 +98,26 @@
 
   // ---- spawning ----
   // Enemies (rival players) appear in any lane like Subway-Surfers trains.
-  // 1 or 2 lanes are blocked per chunk, always leaving at least one safe lane.
+  // 1 or 2 lanes are blocked per chunk (randomised), always leaving a safe lane.
   function spawnChunk(z) {
-    const freeLane = (Math.random() * 3) | 0;
+    const order = [0, 1, 2];
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    const blockedCount = Math.random() < 0.55 ? 1 : 2; // usually just one lane
     const types = ['block', 'slide', 'leap'];
-    const blockTwo = Math.random() < 0.7;
-    let blocked = 0;
-    for (let lane = 0; lane < 3; lane++) {
-      if (lane === freeLane) continue;
-      if (blocked === 1 && !blockTwo) break; // leave two lanes open
+    for (let i = 0; i < blockedCount; i++) {
+      const lane = order[i];
       const t = types[(Math.random() * types.length) | 0];
       const o = K.Opponent.create(lane, t);
+      o.position.x = LANES[lane];   // place in its actual lane (was stuck at centre)
       o.position.z = z;
       o.userData.z = z;
       obstacleGroup.add(o);
       obstacles.push(o);
-      blocked++;
     }
-    // golden trophies line the safe lane
+    const freeLane = order[blockedCount]; // guaranteed open lane
     const n = 3 + ((Math.random() * 4) | 0);
     for (let i = 0; i < n; i++) {
       const b = K.Trophy.create();
@@ -249,8 +251,7 @@
     }
     for (let i = trophies.length - 1; i >= 0; i--) {
       const b = trophies[i];
-      b.position.z += moveAmt; b.userData.z = b.position.z;
-      b.rotation.y += dt * 3; b.rotation.z += dt * 2;
+      b.position.z += moveAmt; b.userData.z = b.position.z; // still/upright, just scrolls with the world
       if (b.userData.z > DESPAWN_Z) { trophyGroup.remove(b); trophies.splice(i, 1); continue; }
       checkTrophy(b);
     }
@@ -259,7 +260,7 @@
     if (distance >= nextSpawnDist) {
       spawnChunk(SPAWN_Z);
       nextSpawnDist += nextSpawnGap;
-      nextSpawnGap = 16 + Math.random() * 12;
+      nextSpawnGap = 24 + Math.random() * 16;
     }
   }
 
