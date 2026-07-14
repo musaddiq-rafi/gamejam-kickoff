@@ -14,14 +14,14 @@
     <div class="score" id="score">0</div>
     <div class="sub">METRES</div>
   </div>
-  <div class="balls"><span class="ball-icon"></span><span id="ballCount">0</span></div>
+  <div class="trophies"><span class="trophy-icon"></span><span id="trophyCount">0</span></div>
 </div>
 
 <div class="flash" id="flash"></div>
 
 <div class="overlay" id="worldScreen">
   <div class="title">KICKOFF RUSH</div>
-  <div class="subtitle">Pick your arena. Dodge rival players, leap slide-tackles, duck jumping blocks, and grab loose balls. How far can you dribble?</div>
+  <div class="subtitle">Pick your arena. Dodge rival players, leap slide-tackles, duck jumping blocks, and collect golden trophies. How far can you dribble?</div>
   <div class="world-cards">
     <div class="world-card" data-world="worldcup">
       <div class="wc-emoji">🏟️</div>
@@ -48,7 +48,7 @@
 
 <div class="overlay hidden" id="startScreen">
   <div class="title">KICKOFF RUSH</div>
-  <div class="subtitle">You've got the ball and the whole pitch is yours — until the defenders show up. Dodge rival players, leap slide-tackles and duck jumping blocks. Grab loose balls for bonus. How far can you dribble?</div>
+  <div class="subtitle">You've got the ball and the whole pitch is yours — until the defenders show up. Dodge rival players, leap slide-tackles and duck jumping blocks. Collect golden trophies as you go. How far can you dribble?</div>
   <button class="btn" id="startBtn">KICK OFF</button>
   <div class="keys">
     <kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lanes<br/>
@@ -61,7 +61,7 @@
 <div class="overlay hidden" id="overScreen">
   <div class="title" style="font-size:46px;">TACKLED!</div>
   <div class="final">Distance: <b id="finalScore">0</b> m</div>
-  <div class="final">Balls collected: <b id="finalBalls">0</b></div>
+  <div class="final">Trophies collected: <b id="finalTrophies">0</b></div>
   <div class="final" style="font-size:17px;opacity:.85;" id="bestLine"></div>
   <button class="btn" id="restartBtn" style="margin-top:18px;">PLAY AGAIN</button>
   <button class="btn btn-ghost" id="changeWorldBtn" style="margin-top:12px;">CHANGE WORLD</button>
@@ -73,7 +73,7 @@
 <script src="js/util.js"></script>
 <script src="js/player.js"></script>
 <script src="js/opponents.js"></script>
-<script src="js/balls.js"></script>
+<script src="js/trophies.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

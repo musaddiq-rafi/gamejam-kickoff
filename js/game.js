@@ -1,4 +1,4 @@
-// game.js — orchestrates scene, player, opponents, balls, input, loop and HUD.
+// game.js — orchestrates scene, player, opponents, trophies, input, loop and HUD.
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
   const LANES = [-2.4, 0, 2.4];
@@ -33,28 +33,28 @@
   const playerObj = K.Player.create(scene);
   const player = playerObj.group;
 
-  const obstacles = [], balls = [];
+  const obstacles = [], trophies = [];
   const obstacleGroup = new THREE.Group();
-  const ballGroup = new THREE.Group();
-  scene.add(obstacleGroup, ballGroup);
+  const trophyGroup = new THREE.Group();
+  scene.add(obstacleGroup, trophyGroup);
 
   // ---- state ----
-  let state = 'menu', speed = BASE_SPEED, distance = 0, ballCount = 0;
-  let spawnZ = -60, nextSpawnGap = 22, runPhase = 0;
+  let state = 'menu', speed = BASE_SPEED, distance = 0, trophyCount = 0;
+  let nextSpawnDist = 0, nextSpawnGap = 22, runPhase = 0;
+  const SPAWN_Z = -160;
   let currentWorld = 'worldcup';
   let best = parseInt(localStorage.getItem('kickoffBest') || '0', 10);
 
   const scoreEl = document.getElementById('score');
-  const ballEl = document.getElementById('ballCount');
+  const trophyEl = document.getElementById('trophyCount');
   const startScreen = document.getElementById('startScreen');
   const overScreen = document.getElementById('overScreen');
   const flash = document.getElementById('flash');
 
   function resetGame() {
     obstacles.forEach(o => obstacleGroup.remove(o));
-    balls.forEach(b => ballGroup.remove(b));
-    obstacles.length = 0; balls.length = 0;
-    spawnZ = -60; nextSpawnGap = 22;
+    trophies.forEach(b => trophyGroup.remove(b));
+    obstacles.length = 0; trophies.length = 0;
 
     const u = player.userData;
     u.lane = 1; u.x = LANES[1]; u.y = 0; u.vy = 0;
@@ -62,8 +62,12 @@
     player.position.set(LANES[1], 0, PLAYER_Z);
     player.rotation.z = 0; player.scale.y = 1;
 
-    speed = BASE_SPEED; distance = 0; ballCount = 0;
-    for (let i = 0; i < 3; i++) spawnChunk();
+    speed = BASE_SPEED; distance = 0; trophyCount = 0;
+    nextSpawnGap = 22;
+    // pre-fill the visible track (leaving a short runway) so it never runs empty
+    let z = SPAWN_Z;
+    while (z < -20) { spawnChunk(z); z += nextSpawnGap; nextSpawnGap = 16 + Math.random() * 12; }
+    nextSpawnDist = nextSpawnGap;
   }
 
   function startGame(world) {
@@ -87,37 +91,40 @@
     const d = Math.floor(distance);
     if (d > best) { best = d; localStorage.setItem('kickoffBest', best); }
     document.getElementById('finalScore').textContent = d;
-    document.getElementById('finalBalls').textContent = ballCount;
+    document.getElementById('finalTrophies').textContent = trophyCount;
     document.getElementById('bestLine').textContent = 'Best run: ' + best + ' m';
     overScreen.classList.remove('hidden');
   }
 
   // ---- spawning ----
-  function spawnChunk() {
+  // Enemies (rival players) appear in any lane like Subway-Surfers trains.
+  // 1 or 2 lanes are blocked per chunk, always leaving at least one safe lane.
+  function spawnChunk(z) {
     const freeLane = (Math.random() * 3) | 0;
     const types = ['block', 'slide', 'leap'];
+    const blockTwo = Math.random() < 0.7;
+    let blocked = 0;
     for (let lane = 0; lane < 3; lane++) {
       if (lane === freeLane) continue;
-      if (Math.random() < 0.6) {
-        const t = types[(Math.random() * types.length) | 0];
-        const o = K.Opponent.create(lane, t);
-        o.position.z = spawnZ;
-        o.userData.z = spawnZ;
-        obstacleGroup.add(o);
-        obstacles.push(o);
-      }
+      if (blocked === 1 && !blockTwo) break; // leave two lanes open
+      const t = types[(Math.random() * types.length) | 0];
+      const o = K.Opponent.create(lane, t);
+      o.position.z = z;
+      o.userData.z = z;
+      obstacleGroup.add(o);
+      obstacles.push(o);
+      blocked++;
     }
+    // golden trophies line the safe lane
     const n = 3 + ((Math.random() * 4) | 0);
     for (let i = 0; i < n; i++) {
-      const b = K.Ball.create();
-      b.position.set(LANES[freeLane], 0.95, spawnZ + i * 1.6);
-      b.userData.z = spawnZ + i * 1.6;
+      const b = K.Trophy.create();
+      b.position.set(LANES[freeLane], 1.0, z + i * 1.6);
+      b.userData.z = z + i * 1.6;
       b.userData.lane = freeLane;
-      ballGroup.add(b);
-      balls.push(b);
+      trophyGroup.add(b);
+      trophies.push(b);
     }
-    spawnZ -= nextSpawnGap;
-    nextSpawnGap = 16 + Math.random() * 12;
   }
 
   // ---- input ----
@@ -191,17 +198,17 @@
       }
     }
   }
-  function checkBall(b) {
+  function checkTrophy(b) {
     const u = player.userData;
     if (Math.abs(b.position.z - PLAYER_Z) < 0.8 && Math.abs(u.x - b.position.x) < 1.2) {
       const top = u.y + (u.rolling ? u.rollHeight : u.height);
       const cy = b.position.y;
-      if (top > cy - 0.7 && (u.y) < cy + 0.7) {
+      if (top > cy - 0.7 && u.y < cy + 0.7) {
         b.userData.taken = true;
-        ballGroup.remove(b);
-        balls.splice(balls.indexOf(b), 1);
-        ballCount++;
-        K.Audio.sfx.ball();
+        trophyGroup.remove(b);
+        trophies.splice(trophies.indexOf(b), 1);
+        trophyCount++;
+        K.Audio.sfx.trophy();
       }
     }
   }
@@ -240,15 +247,20 @@
       checkObstacle(o);
       if (state === 'over') return;
     }
-    for (let i = balls.length - 1; i >= 0; i--) {
-      const b = balls[i];
+    for (let i = trophies.length - 1; i >= 0; i--) {
+      const b = trophies[i];
       b.position.z += moveAmt; b.userData.z = b.position.z;
-      b.rotation.z += dt * 5; b.rotation.x += dt * 3;
-      if (b.userData.z > DESPAWN_Z) { ballGroup.remove(b); balls.splice(i, 1); continue; }
-      checkBall(b);
+      b.rotation.y += dt * 3; b.rotation.z += dt * 2;
+      if (b.userData.z > DESPAWN_Z) { trophyGroup.remove(b); trophies.splice(i, 1); continue; }
+      checkTrophy(b);
     }
 
-    if (spawnZ > -200) spawnChunk();
+    // endless: drop a new chunk at the far spawn point every `nextSpawnGap` metres
+    if (distance >= nextSpawnDist) {
+      spawnChunk(SPAWN_Z);
+      nextSpawnDist += nextSpawnGap;
+      nextSpawnGap = 16 + Math.random() * 12;
+    }
   }
 
   let last = performance.now();
@@ -257,7 +269,7 @@
     if (dt > 0.05) dt = 0.05;
     if (state === 'playing') update(dt);
     scoreEl.textContent = Math.floor(distance);
-    ballEl.textContent = ballCount;
+    trophyEl.textContent = trophyCount;
     renderer.render(scene, camera);
     requestAnimationFrame(loop);
   }

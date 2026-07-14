@@ -46,6 +46,7 @@
     jump:   () => blip(420, 0.18, 'square', 0.22, 760),
     roll:   () => blip(300, 0.18, 'sawtooth', 0.18, 140),
     ball:   () => { blip(880, 0.07, 'square', 0.22); setTimeout(() => blip(1320, 0.09, 'square', 0.2), 55); },
+    trophy: () => { blip(1046, 0.09, 'triangle', 0.22); setTimeout(() => blip(1568, 0.1, 'triangle', 0.2), 60); },
     crash:  () => { blip(150, 0.5, 'sawtooth', 0.4, 40); noiseBurst(0.4, 0.45); },
     kick:   () => { blip(180, 0.12, 'square', 0.3, 90); noiseBurst(0.08, 0.25); },
     // referee whistle: two quick high trills

@@ -11,13 +11,20 @@ canvas { display: block; }
 }
 .hud .score { font-size: 30px; font-weight: 800; letter-spacing: .5px; }
 .hud .sub { font-size: 13px; opacity: .9; font-weight: 600; }
-.hud .balls { font-size: 26px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-.ball-icon {
-  width: 22px; height: 22px; border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%, #fff 38%, transparent 39%),
-    conic-gradient(#111 0 18%, #fff 0 36%, #111 0 54%, #fff 0 72%, #111 0 90%, #fff 0);
-  box-shadow: 0 0 8px rgba(255,255,255,.6); border: 1px solid #444;
+.hud .trophies { font-size: 26px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.trophy-icon {
+  width: 20px; height: 22px; position: relative;
+  background: linear-gradient(180deg,#ffe98a 0%,#ffd54f 45%,#f0a500 100%);
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 0 8px rgba(255,200,40,.7);
+}
+.trophy-icon::before {
+  content: ''; position: absolute; left: 50%; top: -7px; transform: translateX(-50%);
+  width: 14px; height: 9px; background: linear-gradient(180deg,#ffe98a,#f0a500); border-radius: 3px 3px 0 0;
+}
+.trophy-icon::after {
+  content: ''; position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%);
+  width: 14px; height: 4px; background: #c98a00; border-radius: 2px;
 }
 
 .overlay {
