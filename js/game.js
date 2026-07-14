@@ -29,7 +29,7 @@
   sun.shadow.camera.top = 35; sun.shadow.camera.bottom = -35;
   scene.add(sun);
 
-  const field = K.Field.create(scene);
+  let field = K.Field.create(scene, 'worldcup');
   const playerObj = K.Player.create(scene);
   const player = playerObj.group;
 
@@ -41,6 +41,7 @@
   // ---- state ----
   let state = 'menu', speed = BASE_SPEED, distance = 0, ballCount = 0;
   let spawnZ = -60, nextSpawnGap = 22, runPhase = 0;
+  let currentWorld = 'worldcup';
   let best = parseInt(localStorage.getItem('kickoffBest') || '0', 10);
 
   const scoreEl = document.getElementById('score');
@@ -65,7 +66,9 @@
     for (let i = 0; i < 3; i++) spawnChunk();
   }
 
-  function startGame() {
+  function startGame(world) {
+    if (world) currentWorld = world;
+    field = K.Field.create(scene, currentWorld);
     K.Audio.init(); K.Audio.resume();
     resetGame();
     state = 'playing';
@@ -158,6 +161,23 @@
 
   document.getElementById('startBtn').addEventListener('click', startGame);
   document.getElementById('restartBtn').addEventListener('click', startGame);
+
+  // world selection
+  const worldScreen = document.getElementById('worldScreen');
+  const changeWorldBtn = document.getElementById('changeWorldBtn');
+  function showWorldScreen() {
+    state = 'menu';
+    K.Audio.stopMusic();
+    overScreen.classList.add('hidden');
+    worldScreen.classList.remove('hidden');
+  }
+  document.querySelectorAll('.world-card').forEach(card => {
+    card.addEventListener('click', () => {
+      worldScreen.classList.add('hidden');
+      startGame(card.dataset.world);
+    });
+  });
+  if (changeWorldBtn) changeWorldBtn.addEventListener('click', showWorldScreen);
 
   // ---- collisions ----
   function checkObstacle(o) {

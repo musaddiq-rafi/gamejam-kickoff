@@ -47,3 +47,18 @@ canvas { display: block; }
 .keys kbd { background: rgba(255,255,255,.18); border-radius: 6px; padding: 2px 8px; border: 1px solid rgba(255,255,255,.3); font-weight: 700; }
 
 .flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 15; }
+
+.world-cards { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+.world-card {
+  pointer-events: auto; cursor: pointer; width: 200px; padding: 20px 16px;
+  border-radius: 18px; background: rgba(255,255,255,.10);
+  border: 2px solid rgba(255,255,255,.25); backdrop-filter: blur(2px);
+  transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+}
+.world-card:hover { transform: translateY(-4px) scale(1.03); border-color: #d6ff8a; background: rgba(255,255,255,.18); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.wc-emoji { font-size: 46px; line-height: 1; margin-bottom: 10px; }
+.wc-name { font-size: 20px; font-weight: 800; letter-spacing: .5px; margin-bottom: 8px; }
+.wc-desc { font-size: 13px; opacity: .85; line-height: 1.5; }
+
+.btn-ghost { background: rgba(255,255,255,.14); color: #fff; box-shadow: none; border: 1px solid rgba(255,255,255,.3); }
+.btn-ghost:hover { background: rgba(255,255,255,.24); box-shadow: none; }

@@ -19,7 +19,34 @@
 
 <div class="flash" id="flash"></div>
 
-<div class="overlay" id="startScreen">
+<div class="overlay" id="worldScreen">
+  <div class="title">KICKOFF RUSH</div>
+  <div class="subtitle">Pick your arena. Dodge rival players, leap slide-tackles, duck jumping blocks, and grab loose balls. How far can you dribble?</div>
+  <div class="world-cards">
+    <div class="world-card" data-world="worldcup">
+      <div class="wc-emoji">🏟️</div>
+      <div class="wc-name">WORLD CUP</div>
+      <div class="wc-desc">A roaring open stadium — cheering crowds wave placards under the floodlights.</div>
+    </div>
+    <div class="world-card" data-world="beach">
+      <div class="wc-emoji">🏖️</div>
+      <div class="wc-name">BEACH</div>
+      <div class="wc-desc">A sandy pitch by the sea, palms and umbrellas, with the sun glowing on the waves.</div>
+    </div>
+    <div class="world-card" data-world="indoor">
+      <div class="wc-emoji">🏟️</div>
+      <div class="wc-name">INDOOR</div>
+      <div class="wc-desc">A enclosed arena under the roof — close stands, bright spotlights and a scoreboard.</div>
+    </div>
+  </div>
+  <div class="keys">
+    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lanes<br/>
+    <kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump &nbsp;•&nbsp; <kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide<br/>
+    On touch: swipe to move, swipe up to jump, swipe down to roll &nbsp;•&nbsp; <kbd>M</kbd> mute &nbsp;•&nbsp; <kbd>R</kbd> restart
+  </div>
+</div>
+
+<div class="overlay hidden" id="startScreen">
   <div class="title">KICKOFF RUSH</div>
   <div class="subtitle">You've got the ball and the whole pitch is yours — until the defenders show up. Dodge rival players, leap slide-tackles and duck jumping blocks. Grab loose balls for bonus. How far can you dribble?</div>
   <button class="btn" id="startBtn">KICK OFF</button>
@@ -36,7 +63,8 @@
   <div class="final">Distance: <b id="finalScore">0</b> m</div>
   <div class="final">Balls collected: <b id="finalBalls">0</b></div>
   <div class="final" style="font-size:17px;opacity:.85;" id="bestLine"></div>
-  <button class="btn" id="restartBtn" style="margin-top:24px;">PLAY AGAIN</button>
+  <button class="btn" id="restartBtn" style="margin-top:18px;">PLAY AGAIN</button>
+  <button class="btn btn-ghost" id="changeWorldBtn" style="margin-top:12px;">CHANGE WORLD</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
