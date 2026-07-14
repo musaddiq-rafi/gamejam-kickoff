@@ -95,6 +95,42 @@
 
     let banners = [], palms = [], umbrellas = [], roofLights = [], boards = [], scoreboards = [], stands = [], floods = [];
 
+    // 3D spectator crowd (instanced) placed on a stand/gallery segment.
+    // innerX = x of the front row (toward the pitch); tierX = x offset per row (into the stand).
+    const bodyGeo = new THREE.BoxGeometry(0.5, 0.7, 0.4);
+    const headGeo = new THREE.SphereGeometry(0.22, 8, 8);
+    const bodyMat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
+    const headMat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
+    const crowdCols = 8, crowdRows = 4;
+    const dummy = new THREE.Object3D();
+    const kitCols = [0xe53935, 0x1e88e5, 0x43a047, 0xfbc02d, 0x8e24aa, 0xffffff, 0xfb8c00, 0x00bcd4];
+    function addCrowd(parent, innerX, tierX, baseY, topY, length, z0) {
+      const n = crowdRows * crowdCols;
+      const body = new THREE.InstancedMesh(bodyGeo, bodyMat, n);
+      const head = new THREE.InstancedMesh(headGeo, headMat, n);
+      let i = 0;
+      for (let r = 0; r < crowdRows; r++) {
+        const y = baseY + (r + 0.5) * ((topY - baseY) / crowdRows);
+        const x = innerX + tierX * r;
+        for (let c = 0; c < crowdCols; c++) {
+          const z = z0 + (crowdCols === 1 ? 0 : (c / (crowdCols - 1) - 0.5) * length);
+          dummy.position.set(x + (Math.random() - 0.5) * 0.15, y, z);
+          dummy.rotation.set(0, (Math.random() - 0.5) * 0.5, 0);
+          dummy.scale.setScalar(0.9 + Math.random() * 0.25);
+          dummy.updateMatrix();
+          body.setMatrixAt(i, dummy.matrix);
+          body.setColorAt(i, new THREE.Color(kitCols[(Math.random() * kitCols.length) | 0]));
+          head.setMatrixAt(i, dummy.matrix);
+          head.setColorAt(i, new THREE.Color(0xf1c27d));
+          i++;
+        }
+      }
+      body.instanceMatrix.needsUpdate = true; head.instanceMatrix.needsUpdate = true;
+      if (body.instanceColor) body.instanceColor.needsUpdate = true;
+      if (head.instanceColor) head.instanceColor.needsUpdate = true;
+      parent.add(body, head);
+    }
+
     if (theme.style === 'stadium' || theme.style === 'indoor') {
       const standGeo = new THREE.BoxGeometry(10, theme.style === 'indoor' ? 11 : 14, 30);
       const crowdTex = crowdTexture();
@@ -113,6 +149,8 @@
           seg.add(stand, wall, roof);
           seg.position.set(side * (PITCH_HALF + 8), 0, -i * 30);
           root.add(seg); stands.push(seg); track(seg, 180);
+          // spectators filling the stand tiers, facing the pitch
+          addCrowd(seg, -side * 4.7, side * 0.45, 1.6, sH - 1.5, 26, 0);
         }
       }
       // floodlights (stadium) / roof spotlights (indoor)
@@ -218,6 +256,20 @@
           umb.position.set(side * (PITCH_HALF + 4), 0, -i * 22 - 11);
           root.add(umb); umbrellas.push(umb); track(umb, 132);
         }
+      // spectator gallery along the beach: low bleachers with crowds on both sides
+      [-1, 1].forEach(side => {
+        for (let i = 0; i < 6; i++) {
+          const seg = new THREE.Group();
+          const step = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 30),
+            new THREE.MeshStandardMaterial({ color: 0xcfc09a, roughness: 1 }));
+          step.position.set(side * (PITCH_HALF + 3), 0.6, 0);
+          seg.add(step);
+          seg.position.set(0, 0, -i * 30);
+          root.add(seg);
+          addCrowd(seg, side * (PITCH_HALF + 1), side * 0.45, 1.4, 3.2, 26, 0);
+          track(seg, 180);
+        }
+      });
     }
 
     function scroll(moveAmt) {
