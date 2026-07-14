@@ -5,6 +5,12 @@
   const GRAVITY = -42, JUMP_V = 15, ROLL_TIME = 0.55;
   const PLAYER_Z = 0, BASE_SPEED = 18, DESPAWN_Z = 14;
   const KEEPER_CHANCE = 0.32; // share of chunks that are a full-width goalkeeper (jump over)
+  const INTRO_HOLD = 3.2, INTRO_TRANS = 1.4; // kickoff cinematic: hold, then camera transition
+  // camera poses: overhead kickoff view vs. the normal third-person chase cam
+  const CAM_GAME_POS = new THREE.Vector3(0, 4.4, 9);
+  const CAM_GAME_LOOK = new THREE.Vector3(0, 1.4, -12);
+  const CAM_INTRO_POS = new THREE.Vector3(0, 22, 11);
+  const CAM_INTRO_LOOK = new THREE.Vector3(0, 0, -3);
 
   const container = document.getElementById('game');
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -34,6 +40,19 @@
   const playerObj = K.Player.create(scene);
   const player = playerObj.group;
 
+  // power-up aura: a point light + a faint additive shell that glows during the free run
+  const playerGlow = new THREE.PointLight(0x66e0ff, 0, 7);
+  playerGlow.position.set(0, 1.2, 0);
+  player.add(playerGlow);
+  const playerAura = new THREE.Mesh(
+    new THREE.SphereGeometry(1.7, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  playerAura.position.y = 1.1;
+  player.add(playerAura);
+  const ball = player.userData.ball; // the dribbled ball
+
   // referee jogs on the sideline (outside the 3 lanes) for the whole match
   const referee = K.Referee.create();
   referee.position.set(6.5, 0, 2);
@@ -51,12 +70,33 @@
   const SPAWN_Z = -160;
   let currentWorld = 'worldcup';
   let best = parseInt(localStorage.getItem('kickoffBest') || '0', 10);
+  let introT = 0, introOpp = null; // kickoff cinematic timer + the lined-up opponent
+  let introSwitched = false; // banner flipped to "GAME STARTS!!" yet?
+  let invisibleT = 0, ghostOn = false, nextFreeKickAt = 50; // free kick every 50 stars
+  let freeKickReady = false; // bar full, waiting for SPACE (game keeps running)
+  let ballKicked = false, ballReturning = false, ballKickT = 0, ballReturnT = 0;
+  const ballReturnFrom = new THREE.Vector3();
+  const LEG_POS = new THREE.Vector3(0, 0.32, 0.7);    // ball at the player's feet
+  const BALL_AHEAD = new THREE.Vector3(0, 1.8, -11); // ball kicked forward
+  const camLook = new THREE.Vector3();
 
   const scoreEl = document.getElementById('score');
   const starEl = document.getElementById('starCount');
   const startScreen = document.getElementById('startScreen');
   const overScreen = document.getElementById('overScreen');
   const flash = document.getElementById('flash');
+  const introBanner = document.getElementById('introBanner');
+  const introL1 = document.getElementById('introL1');
+  const introL2 = document.getElementById('introL2');
+  const introL3 = document.getElementById('introL3');
+  const invisHud = document.getElementById('invisHud');
+  const invisNum = document.getElementById('invisNum');
+  const invisFill = document.getElementById('invisFill');
+  const freeKick = document.getElementById('freeKick');
+  const fk1 = document.getElementById('fk1');
+  const fk2 = document.getElementById('fk2');
+  const fkFill = document.getElementById('fkFill');
+  const fkReady = document.getElementById('fkReady');
 
   function resetGame() {
     obstacles.forEach(o => obstacleGroup.remove(o));
@@ -70,25 +110,47 @@
     player.rotation.z = 0; player.scale.y = 1;
 
     speed = BASE_SPEED; distance = 0; starCount = 0;
-    grace = 5; // referee's kickoff grace period
+    grace = 0; // starts when the run actually begins (after the intro)
     player.visible = true;
+    invisibleT = 0; ghostOn = false; nextFreeKickAt = 50;
+    freeKickReady = false; ballKicked = false; ballReturning = false;
+    fkReady.classList.add('hidden');
+    ball.position.copy(LEG_POS);
+    setPlayerGhost(false); invisHud.classList.add('hidden'); freeKick.classList.add('hidden');
     nextSpawnGap = 24;
-    // pre-fill the visible track (leaving a short runway) so it never runs empty
-    let z = SPAWN_Z;
-    while (z < -20) { spawnChunk(z); z += nextSpawnGap; nextSpawnGap = 16 + Math.random() * 12; }
-    nextSpawnDist = nextSpawnGap;
+    nextSpawnDist = 0;
+
+    // ---- kickoff scene for the intro cinematic ----
+    referee.userData.whistle = true;
+    referee.position.set(3, 0, 2); // to the side of the kickoff, not blocking the view
+    if (!referee.parent) scene.add(referee);
+    if (introOpp) { scene.remove(introOpp); introOpp = null; }
+    introOpp = K.Opponent.create(1, 'player'); // a rival lined up for the kickoff
+    introOpp.position.set(0, 0, -7);
+    scene.add(introOpp);
   }
 
   function startGame(world) {
     if (world) currentWorld = world;
     field = K.Field.create(scene, currentWorld);
-    K.Audio.init(); K.Audio.resume();
     resetGame();
-    state = 'playing';
+    introT = 0;
+    state = 'intro';
     startScreen.classList.add('hidden');
     overScreen.classList.add('hidden');
-    K.Audio.sfx.whistle();
-    K.Audio.startMusic();
+    worldScreen.classList.add('hidden');
+    introBanner.classList.remove('hidden');
+    introL1.textContent = 'REFEREE WHISTLES';
+    introL2.textContent = 'KICK OFF!';
+    introL3.textContent = 'Get ready…';
+    introL1.style.display = ''; introL3.style.display = '';
+    introSwitched = false;
+    // play the whistle only once the audio context is actually running,
+    // otherwise the scheduled envelope ends before sound is heard
+    K.Audio.init();
+    const playKickoff = () => { K.Audio.sfx.whistle(); K.Audio.startMusic(); };
+    const p = K.Audio.resume();
+    if (p && p.then) p.then(playKickoff); else playKickoff();
   }
 
   function gameOver() {
@@ -102,7 +164,55 @@
     document.getElementById('finalScore').textContent = d;
     document.getElementById('finalStars').textContent = starCount;
     document.getElementById('bestLine').textContent = 'Best run: ' + best + ' m';
+    freeKick.classList.add('hidden');
+    fkReady.classList.add('hidden');
     overScreen.classList.remove('hidden');
+  }
+
+  // during the free run the player stays BOLD (solid) and gains a DARK charged aura
+  function setPlayerGhost(on) {
+    player.traverse(n => {
+      if (n.isMesh && n.material) {
+        n.material.transparent = false;
+        n.material.opacity = 1;
+        n.material.depthWrite = true;
+      }
+    });
+    playerGlow.color.set(0x2a3bff);
+    playerGlow.intensity = on ? 1.6 : 0;
+    playerAura.visible = on;
+    playerAura.material.color.set(0x141a33);
+    playerAura.material.opacity = on ? 0.34 : 0; // low-opacity dark aura
+  }
+  function fadeObj(obj, op) {
+    obj.traverse(n => {
+      if (n.isMesh && n.material) { n.material.transparent = op < 1; n.material.opacity = op; }
+    });
+  }
+  function flashScreen(a) {
+    flash.style.transition = 'none'; flash.style.opacity = a;
+    requestAnimationFrame(() => { flash.style.transition = 'opacity .5s'; flash.style.opacity = '0'; });
+  }
+
+  // charge bar full -> small corner prompt, game keeps running, waiting for SPACE
+  function awardFreeKick() {
+    freeKickReady = true;
+    fkReady.classList.remove('hidden');
+  }
+  // player shoots: ball kicks forward, rivals freeze (stand still, faded, harmless), 5s free run
+  function shootFreeKick() {
+    freeKickReady = false;
+    invisibleT = 5; // 5s of free movement
+    obstacles.forEach(o => { o.userData.frozen = true; fadeObj(o, 0.28); }); // freeze + fade
+    K.Audio.sfx.whistle();
+    K.Audio.sfx.goal();
+    flashScreen(0.5);
+    ballKicked = true; ballReturning = false; ballKickT = 0; // launch the ball forward
+    fkReady.classList.add('hidden');
+    fk1.textContent = 'FREE KICK!'; fk2.style.display = 'none';
+    freeKick.classList.remove('hidden');
+    setTimeout(() => freeKick.classList.add('hidden'), 1400);
+    invisHud.classList.remove('hidden');
   }
 
   // ---- spawning ----
@@ -160,6 +270,7 @@
   }
 
   window.addEventListener('keydown', e => {
+    if (freeKickReady && e.key === ' ') { e.preventDefault(); shootFreeKick(); return; }
     switch (e.key) {
       case 'ArrowLeft': case 'a': case 'A': moveLane(-1); break;
       case 'ArrowRight': case 'd': case 'D': moveLane(1); break;
@@ -202,6 +313,8 @@
   // ---- collisions ----
   function checkObstacle(o) {
     if (grace > 0) return; // protected during kickoff
+    if (invisibleT > 0) return; // free run: no collisions while powered
+    if (o.userData.frozen) return; // frozen rivals don't block
     const u = player.userData, d = o.userData;
     const near = Math.abs(o.position.z - PLAYER_Z) < d.halfDepth + 0.4;
     if (!near) return;
@@ -224,6 +337,7 @@
         stars.splice(stars.indexOf(b), 1);
         starCount++;
         K.Audio.sfx.star();
+        if (starCount >= nextFreeKickAt) { awardFreeKick(); nextFreeKickAt += 50; }
       }
     }
   }
@@ -250,7 +364,6 @@
 
     runPhase += dt * (10 + speed * 0.25);
     playerObj.animate(runPhase, u.rolling);
-    referee.userData.animate(dt);
 
     // kickoff grace: invincible for the first 5s (referee's whistle)
     if (grace > 0) {
@@ -259,13 +372,54 @@
       if (grace <= 0) player.visible = true;
     }
 
+    // penalty bonus: 5s of invisibility + free movement (no new rivals spawn)
+    const wasGhost = ghostOn;
+    ghostOn = invisibleT > 0;
+    if (ghostOn) {
+      invisibleT -= dt;
+      invisNum.textContent = Math.max(1, Math.ceil(invisibleT));
+      invisFill.style.width = (Math.max(0, invisibleT) / 5 * 100) + '%';
+      if (invisibleT <= 0) {
+        ghostOn = false; invisibleT = 0;
+        invisHud.classList.add('hidden');
+        nextSpawnDist = distance + 25; // clear runway as the run resumes
+        ballReturning = true; ballReturnT = 0; ballReturnFrom.copy(ball.position); // ball comes home
+        obstacles.forEach(o => { o.userData.frozen = false; fadeObj(o, 1); }); // rivals wake up
+      }
+    }
+    if (ghostOn !== wasGhost) setPlayerGhost(ghostOn);
+
+    // free-kick charge bar fills toward the next bonus (every 50 stars)
+    fkFill.style.width = (freeKickReady ? 100 : (starCount % 50) / 50 * 100) + '%';
+
+    // ball kick-off / return animation (overrides the dribble while active)
+    if (ballKicked) {
+      if (ballReturning) {
+        ballReturnT += dt / 0.5;
+        const k = Math.min(1, ballReturnT), e = k * k * (3 - 2 * k);
+        ball.position.lerpVectors(ballReturnFrom, LEG_POS, e);
+        ball.rotation.x -= dt * 12;
+        if (k >= 1) { ballKicked = false; ball.position.copy(LEG_POS); }
+      } else {
+        ballKickT += dt;
+        const k = Math.min(1, ballKickT / 0.35), e = k * k * (3 - 2 * k);
+        ball.position.lerpVectors(LEG_POS, BALL_AHEAD, e);
+        ball.rotation.x -= dt * 16;
+      }
+    }
+
     const moveAmt = speed * dt;
     field.scroll(moveAmt);
+    field.update(distance, dt);
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
       o.position.z += moveAmt; o.userData.z = o.position.z;
-      o.userData.animate && o.userData.animate(dt);
+      if (o.userData.frozen) {
+        // frozen rivals stand still (no animation) during the free run
+      } else {
+        o.userData.animate && o.userData.animate(dt);
+      }
       if (o.userData.z > DESPAWN_Z) { obstacleGroup.remove(o); obstacles.splice(i, 1); continue; }
       checkObstacle(o);
       if (state === 'over') return;
@@ -278,10 +432,55 @@
     }
 
     // endless: drop a new chunk at the far spawn point every `nextSpawnGap` metres
-    if (distance >= nextSpawnDist) {
+    // (paused while the penalty free-run is active so the lanes stay clear)
+    if (!ghostOn && distance >= nextSpawnDist) {
       spawnChunk(SPAWN_Z);
       nextSpawnDist += nextSpawnGap;
       nextSpawnGap = 24 + Math.random() * 16;
+    }
+  }
+
+  function prefillTrack() {
+    let z = SPAWN_Z;
+    while (z < -20) { spawnChunk(z); z += nextSpawnGap; nextSpawnGap = 16 + Math.random() * 12; }
+    nextSpawnDist = nextSpawnGap;
+  }
+
+  // kickoff cinematic: overhead view of player + opponent + referee, then the
+  // referee walks off for good and the camera eases into the third-person chase.
+  function updateIntro(dt) {
+    introT += dt;
+    runPhase += dt * 6; // gentle idle jog at the spot
+    playerObj.animate(runPhase, false);
+    if (introOpp) introOpp.userData.animate(dt);
+    referee.userData.animate(dt);
+    field.update(0, dt); // let the flags wave during the kickoff
+
+    if (introT < INTRO_HOLD) {
+      camera.position.copy(CAM_INTRO_POS);
+      camLook.copy(CAM_INTRO_LOOK);
+    } else {
+      if (!introSwitched) {
+        introSwitched = true;
+        introL1.style.display = 'none'; introL3.style.display = 'none';
+        introL2.textContent = 'GAME STARTS!!';
+      }
+      const t = Math.min(1, (introT - INTRO_HOLD) / INTRO_TRANS);
+      const s = t * t * (3 - 2 * t); // smoothstep ease
+      camera.position.lerpVectors(CAM_INTRO_POS, CAM_GAME_POS, s);
+      camLook.lerpVectors(CAM_INTRO_LOOK, CAM_GAME_LOOK, s);
+      referee.position.set(3 + 9 * s, 0, 2 - s); // referee walks off to the side for good
+    }
+    camera.lookAt(camLook);
+
+    if (introT >= INTRO_HOLD + INTRO_TRANS) {
+      introBanner.classList.add('hidden');
+      referee.userData.whistle = false;
+      scene.remove(referee);
+      if (introOpp) { scene.remove(introOpp); introOpp = null; }
+      grace = 5; // kickoff grace / invincibility begins now
+      prefillTrack();
+      state = 'playing';
     }
   }
 
@@ -290,6 +489,7 @@
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
     if (state === 'playing') update(dt);
+    else if (state === 'intro') updateIntro(dt);
     scoreEl.textContent = Math.floor(distance);
     starEl.textContent = starCount;
     renderer.render(scene, camera);

@@ -52,12 +52,21 @@
     g.userData.pivots = { armLP, armRP, legLP, legRP };
 
     let ph = Math.random() * 10;
+    g.userData.whistle = false;
     g.userData.animate = function (dt) {
       ph += dt * 9;
-      const swing = Math.sin(ph) * 0.85;
       const p = g.userData.pivots;
-      p.legLP.rotation.x = swing; p.legRP.rotation.x = -swing;
-      p.armLP.rotation.x = -swing; p.armRP.rotation.x = swing;
+      if (g.userData.whistle) {
+        // kickoff pose: both arms raised to the whistle, legs still, slight bob
+        g.position.y = Math.sin(ph * 1.5) * 0.05;
+        p.legLP.rotation.x = 0; p.legRP.rotation.x = 0;
+        p.armLP.rotation.x = -2.2; p.armRP.rotation.x = -2.2;
+      } else {
+        g.position.y = 0;
+        const swing = Math.sin(ph) * 0.85;
+        p.legLP.rotation.x = swing; p.legRP.rotation.x = -swing;
+        p.armLP.rotation.x = -swing; p.armRP.rotation.x = swing;
+      }
     };
     return g;
   }
