@@ -34,6 +34,11 @@
   const playerObj = K.Player.create(scene);
   const player = playerObj.group;
 
+  // referee jogs on the sideline (outside the 3 lanes) for the whole match
+  const referee = K.Referee.create();
+  referee.position.set(6.5, 0, 2);
+  scene.add(referee);
+
   const obstacles = [], stars = [];
   const obstacleGroup = new THREE.Group();
   const starGroup = new THREE.Group();
@@ -42,6 +47,7 @@
   // ---- state ----
   let state = 'menu', speed = BASE_SPEED, distance = 0, starCount = 0;
   let nextSpawnDist = 0, nextSpawnGap = 22, runPhase = 0;
+  let grace = 0; // seconds of kickoff invincibility
   const SPAWN_Z = -160;
   let currentWorld = 'worldcup';
   let best = parseInt(localStorage.getItem('kickoffBest') || '0', 10);
@@ -64,6 +70,8 @@
     player.rotation.z = 0; player.scale.y = 1;
 
     speed = BASE_SPEED; distance = 0; starCount = 0;
+    grace = 5; // referee's kickoff grace period
+    player.visible = true;
     nextSpawnGap = 24;
     // pre-fill the visible track (leaving a short runway) so it never runs empty
     let z = SPAWN_Z;
@@ -193,6 +201,7 @@
 
   // ---- collisions ----
   function checkObstacle(o) {
+    if (grace > 0) return; // protected during kickoff
     const u = player.userData, d = o.userData;
     const near = Math.abs(o.position.z - PLAYER_Z) < d.halfDepth + 0.4;
     if (!near) return;
@@ -241,6 +250,14 @@
 
     runPhase += dt * (10 + speed * 0.25);
     playerObj.animate(runPhase, u.rolling);
+    referee.userData.animate(dt);
+
+    // kickoff grace: invincible for the first 5s (referee's whistle)
+    if (grace > 0) {
+      grace -= dt;
+      player.visible = (Math.floor(grace * 8) % 2 === 0);
+      if (grace <= 0) player.visible = true;
+    }
 
     const moveAmt = speed * dt;
     field.scroll(moveAmt);
