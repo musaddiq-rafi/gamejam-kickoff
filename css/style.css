@@ -11,20 +11,12 @@ canvas { display: block; }
 }
 .hud .score { font-size: 30px; font-weight: 800; letter-spacing: .5px; }
 .hud .sub { font-size: 13px; opacity: .9; font-weight: 600; }
-.hud .trophies { font-size: 26px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-.trophy-icon {
-  width: 20px; height: 22px; position: relative;
-  background: linear-gradient(180deg,#ffe98a 0%,#ffd54f 45%,#f0a500 100%);
-  border-radius: 0 0 4px 4px;
+.hud .stars { font-size: 26px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.star-icon {
+  width: 22px; height: 22px;
+  background: linear-gradient(180deg,#fff0a8,#ffd54f);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
   box-shadow: 0 0 8px rgba(255,200,40,.7);
-}
-.trophy-icon::before {
-  content: ''; position: absolute; left: 50%; top: -7px; transform: translateX(-50%);
-  width: 14px; height: 9px; background: linear-gradient(180deg,#ffe98a,#f0a500); border-radius: 3px 3px 0 0;
-}
-.trophy-icon::after {
-  content: ''; position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%);
-  width: 14px; height: 4px; background: #c98a00; border-radius: 2px;
 }
 
 .overlay {

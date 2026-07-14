@@ -1,18 +1,14 @@
-// opponents.js — rival players you must avoid. Types:
-//  'block'  : standing defender -> switch lane
-//  'slide'  : sliding tackle     -> jump over
-//  'leap'   : jumping block      -> roll under
+// opponents.js — two obstacle types:
+//   'player' : uniform-colour rival (single lane) -> switch lanes to avoid
+//   'keeper' : goalkeeper with arms spread across the pitch -> MUST jump over
+//              (spans all lanes, so switching lanes is not enough)
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
 
-  const kits = [
-    { jersey: 0x1e88e5, sock: 0x1e88e5 },  // blue
-    { jersey: 0x43a047, sock: 0x43a047 },  // green
-    { jersey: 0x8e24aa, sock: 0x8e24aa },  // purple
-    { jersey: 0xfbc02d, sock: 0xfbc02d }   // yellow
-  ];
+  const PLAYER_KIT = { jersey: 0x1e88e5, sock: 0x1e88e5 }; // all players same blue
+  const KEEPER_KIT = { jersey: 0x2ecc71, sock: 0x2ecc71 }; // keeper is special green
 
-  function build(kit) {
+  function buildPlayer(kit) {
     const g = new THREE.Group();
     const skin = new THREE.MeshStandardMaterial({ color: 0xc98a5b, roughness: 0.85 });
     const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 0.7 });
@@ -50,27 +46,65 @@
     return g;
   }
 
+  function buildKeeper(kit) {
+    const g = new THREE.Group();
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc98a5b, roughness: 0.85 });
+    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 0.7 });
+    const shorts = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const sock = new THREE.MeshStandardMaterial({ color: kit.sock });
+    const boot = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.6 });
+
+    // crouched torso + head
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.5), jersey);
+    torso.position.y = 1.15; torso.castShadow = true;
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), skin);
+    head.position.y = 1.85; head.castShadow = true;
+
+    // arms spread WIDE across the pitch (the "save")
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.24, 0.24), jersey);
+    armL.position.set(-1.95, 1.55, 0);
+    const armR = armL.clone(); armR.position.x = 1.95;
+    const gloveL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), gloveMat);
+    gloveL.position.set(-3.9, 1.55, 0);
+    const gloveR = gloveL.clone(); gloveR.position.x = 3.9;
+
+    // short crouched legs
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.55, 0.32), shorts);
+    const legR = legL.clone();
+    legL.position.set(-0.25, 0.4, 0); legR.position.set(0.25, 0.4, 0);
+    [legL, legR].forEach(l => {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.25, 0.34), sock);
+      s.position.y = -0.4; l.add(s);
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.48), boot);
+      b.position.set(0, -0.62, 0.07); l.add(b);
+    });
+
+    g.add(torso, head, armL, armR, gloveL, gloveR, legL, legR);
+    g.userData.pivots = { armL, armR };
+    return g;
+  }
+
   function create(lane, type) {
-    const kit = kits[(Math.random() * kits.length) | 0];
-    const g = build(kit);
-    g.position.x = 0;
-    const ud = g.userData;
-    ud.type = type; ud.lane = lane; ud.z = 0; ud.halfDepth = 0.45;
-
-    if (type === 'slide') {
-      // lying low, sliding toward player
-      g.rotation.z = Math.PI / 2;
-      g.rotation.y = Math.PI / 2;
-      g.position.y = 0.25;
-      ud.height = 0.85; ud.gapBottom = 0; // jump over (low)
-    } else if (type === 'leap') {
-      // jumping up to block
-      g.position.y = 1.15;
-      ud.gapBottom = 1.0; // roll under
-    } else {
-      ud.gapBottom = 2.0; // full body, must change lane
+    if (type === 'keeper') {
+      const g = buildKeeper(KEEPER_KIT);
+      g.position.x = 0; // centred, spans all lanes
+      const ud = g.userData;
+      ud.type = 'keeper'; ud.lane = lane; ud.z = 0; ud.halfDepth = 0.6;
+      ud.clearHeight = 1.6; // must jump above this
+      let ph = Math.random() * 10;
+      ud.animate = function (dt) {
+        ph += dt * 5;
+        const w = Math.sin(ph) * 0.12;
+        ud.pivots.armL.rotation.z = w; ud.pivots.armR.rotation.z = -w;
+        g.position.y = Math.abs(Math.sin(ph)) * 0.08;
+      };
+      return g;
     }
-
+    // player
+    const g = buildPlayer(PLAYER_KIT);
+    const ud = g.userData;
+    ud.type = 'player'; ud.lane = lane; ud.z = 0; ud.halfDepth = 0.45;
     let ph = Math.random() * 10;
     ud.animate = function (dt) {
       ph += dt * 9;

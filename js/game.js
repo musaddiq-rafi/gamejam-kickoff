@@ -4,6 +4,7 @@
   const LANES = [-2.4, 0, 2.4];
   const GRAVITY = -42, JUMP_V = 15, ROLL_TIME = 0.55;
   const PLAYER_Z = 0, BASE_SPEED = 18, DESPAWN_Z = 14;
+  const KEEPER_CHANCE = 0.32; // share of chunks that are a full-width goalkeeper (jump over)
 
   const container = document.getElementById('game');
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -33,28 +34,28 @@
   const playerObj = K.Player.create(scene);
   const player = playerObj.group;
 
-  const obstacles = [], trophies = [];
+  const obstacles = [], stars = [];
   const obstacleGroup = new THREE.Group();
-  const trophyGroup = new THREE.Group();
-  scene.add(obstacleGroup, trophyGroup);
+  const starGroup = new THREE.Group();
+  scene.add(obstacleGroup, starGroup);
 
   // ---- state ----
-  let state = 'menu', speed = BASE_SPEED, distance = 0, trophyCount = 0;
+  let state = 'menu', speed = BASE_SPEED, distance = 0, starCount = 0;
   let nextSpawnDist = 0, nextSpawnGap = 22, runPhase = 0;
   const SPAWN_Z = -160;
   let currentWorld = 'worldcup';
   let best = parseInt(localStorage.getItem('kickoffBest') || '0', 10);
 
   const scoreEl = document.getElementById('score');
-  const trophyEl = document.getElementById('trophyCount');
+  const starEl = document.getElementById('starCount');
   const startScreen = document.getElementById('startScreen');
   const overScreen = document.getElementById('overScreen');
   const flash = document.getElementById('flash');
 
   function resetGame() {
     obstacles.forEach(o => obstacleGroup.remove(o));
-    trophies.forEach(b => trophyGroup.remove(b));
-    obstacles.length = 0; trophies.length = 0;
+    stars.forEach(b => starGroup.remove(b));
+    obstacles.length = 0; stars.length = 0;
 
     const u = player.userData;
     u.lane = 1; u.x = LANES[1]; u.y = 0; u.vy = 0;
@@ -62,7 +63,7 @@
     player.position.set(LANES[1], 0, PLAYER_Z);
     player.rotation.z = 0; player.scale.y = 1;
 
-    speed = BASE_SPEED; distance = 0; trophyCount = 0;
+    speed = BASE_SPEED; distance = 0; starCount = 0;
     nextSpawnGap = 24;
     // pre-fill the visible track (leaving a short runway) so it never runs empty
     let z = SPAWN_Z;
@@ -91,41 +92,43 @@
     const d = Math.floor(distance);
     if (d > best) { best = d; localStorage.setItem('kickoffBest', best); }
     document.getElementById('finalScore').textContent = d;
-    document.getElementById('finalTrophies').textContent = trophyCount;
+    document.getElementById('finalStars').textContent = starCount;
     document.getElementById('bestLine').textContent = 'Best run: ' + best + ' m';
     overScreen.classList.remove('hidden');
   }
 
   // ---- spawning ----
-  // Enemies (rival players) appear in any lane like Subway-Surfers trains.
-  // 1 or 2 lanes are blocked per chunk (randomised), always leaving a safe lane.
+  // Two obstacle types:
+  //   'player' : a rival in 1-2 lanes (switch lanes to avoid), stars in the free lane
+  //   'keeper' : a goalkeeper spanning the WHOLE pitch -> you must JUMP over it
   function spawnChunk(z) {
+    if (Math.random() < KEEPER_CHANCE) {
+      const o = K.Opponent.create(1, 'keeper');
+      o.position.z = z; o.userData.z = z;
+      obstacleGroup.add(o); obstacles.push(o);
+      return;
+    }
     const order = [0, 1, 2];
     for (let i = order.length - 1; i > 0; i--) {
       const j = (Math.random() * (i + 1)) | 0;
       [order[i], order[j]] = [order[j], order[i]];
     }
-    const blockedCount = Math.random() < 0.55 ? 1 : 2; // usually just one lane
-    const types = ['block', 'slide', 'leap'];
+    const blockedCount = Math.random() < 0.55 ? 1 : 2;
     for (let i = 0; i < blockedCount; i++) {
       const lane = order[i];
-      const t = types[(Math.random() * types.length) | 0];
-      const o = K.Opponent.create(lane, t);
-      o.position.x = LANES[lane];   // place in its actual lane (was stuck at centre)
-      o.position.z = z;
-      o.userData.z = z;
-      obstacleGroup.add(o);
-      obstacles.push(o);
+      const o = K.Opponent.create(lane, 'player');
+      o.position.x = LANES[lane];
+      o.position.z = z; o.userData.z = z;
+      obstacleGroup.add(o); obstacles.push(o);
     }
     const freeLane = order[blockedCount]; // guaranteed open lane
     const n = 3 + ((Math.random() * 4) | 0);
     for (let i = 0; i < n; i++) {
-      const b = K.Trophy.create();
+      const b = K.Star.create();
       b.position.set(LANES[freeLane], 1.0, z + i * 1.6);
       b.userData.z = z + i * 1.6;
       b.userData.lane = freeLane;
-      trophyGroup.add(b);
-      trophies.push(b);
+      starGroup.add(b); stars.push(b);
     }
   }
 
@@ -191,26 +194,27 @@
   // ---- collisions ----
   function checkObstacle(o) {
     const u = player.userData, d = o.userData;
-    if (Math.abs(o.position.z - PLAYER_Z) < d.halfDepth + 0.4 && Math.abs(u.x - o.position.x) < 0.85) {
-      if (d.type === 'block') gameOver();
-      else if (d.type === 'slide') { if (u.y < d.height - 0.1) gameOver(); }
-      else if (d.type === 'leap') {
-        const top = u.y + (u.rolling ? u.rollHeight : u.height);
-        if (top > d.gapBottom) gameOver();
-      }
+    const near = Math.abs(o.position.z - PLAYER_Z) < d.halfDepth + 0.4;
+    if (!near) return;
+    if (d.type === 'keeper') {
+      // spans every lane -> only jumping clears it
+      if (u.y < d.clearHeight) gameOver();
+    } else {
+      // single-lane player -> switch lanes to avoid
+      if (Math.abs(u.x - o.position.x) < 0.85) gameOver();
     }
   }
-  function checkTrophy(b) {
+  function checkStar(b) {
     const u = player.userData;
     if (Math.abs(b.position.z - PLAYER_Z) < 0.8 && Math.abs(u.x - b.position.x) < 1.2) {
       const top = u.y + (u.rolling ? u.rollHeight : u.height);
       const cy = b.position.y;
       if (top > cy - 0.7 && u.y < cy + 0.7) {
         b.userData.taken = true;
-        trophyGroup.remove(b);
-        trophies.splice(trophies.indexOf(b), 1);
-        trophyCount++;
-        K.Audio.sfx.trophy();
+        starGroup.remove(b);
+        stars.splice(stars.indexOf(b), 1);
+        starCount++;
+        K.Audio.sfx.star();
       }
     }
   }
@@ -249,11 +253,11 @@
       checkObstacle(o);
       if (state === 'over') return;
     }
-    for (let i = trophies.length - 1; i >= 0; i--) {
-      const b = trophies[i];
+    for (let i = stars.length - 1; i >= 0; i--) {
+      const b = stars[i];
       b.position.z += moveAmt; b.userData.z = b.position.z; // still/upright, just scrolls with the world
-      if (b.userData.z > DESPAWN_Z) { trophyGroup.remove(b); trophies.splice(i, 1); continue; }
-      checkTrophy(b);
+      if (b.userData.z > DESPAWN_Z) { starGroup.remove(b); stars.splice(i, 1); continue; }
+      checkStar(b);
     }
 
     // endless: drop a new chunk at the far spawn point every `nextSpawnGap` metres
@@ -270,7 +274,7 @@
     if (dt > 0.05) dt = 0.05;
     if (state === 'playing') update(dt);
     scoreEl.textContent = Math.floor(distance);
-    trophyEl.textContent = trophyCount;
+    starEl.textContent = starCount;
     renderer.render(scene, camera);
     requestAnimationFrame(loop);
   }
