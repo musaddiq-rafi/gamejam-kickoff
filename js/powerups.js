@@ -1,10 +1,10 @@
-// powerups.js — glowing orbs: speed boost, star magnet, one-hit shield.
+// powerups.js — glowing orbs: speed boost, golden boot (star magnet), one-hit shield, extra life.
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
 
   const TYPES = {
     speed:  { color: 0x4fc3f7, label: 'SPEED',  dur: 4 },
-    magnet: { color: 0xb069ff, label: 'MAGNET', dur: 5 },
+    magnet: { color: 0xffd54f, label: 'GOLDEN BOOT', dur: 5 },
     shield: { color: 0x4fd17a, label: 'SHIELD', dur: 0 },
     life:   { color: 0xff3b5c, label: 'LIFE',   dur: 0 }
   };

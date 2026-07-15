@@ -10,18 +10,18 @@
 
   function buildPlayer(kit) {
     const g = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: 0xc98d5b, roughness: 1, flatShading: true });
-    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 1, flatShading: true });
-    const shorts = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
-    const sock = new THREE.MeshStandardMaterial({ color: kit.sock, roughness: 1, flatShading: true });
-    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc98d5b, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: kit.sock, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 0.7, metalness: 0.15, flatShading: true });
 
     // number + brand + team badge on the front only
     const frontTex = kit.number != null
       ? K.makeFrontJersey({ base: kit.jersey, number: kit.number, country: kit.country })
       : null;
     const matFront = frontTex
-      ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 1, flatShading: true })
+      ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 0.7, metalness: 0.15, flatShading: true })
       : jersey;
     // BoxGeometry face order: +x,-x,+y,-y,+z(front),-z(back)
     const torsoMats = [jersey, jersey, jersey, jersey, matFront, jersey];
@@ -57,19 +57,19 @@
 
   function buildKeeper(kit) {
     const g = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: 0xc98d5b, roughness: 1, flatShading: true });
-    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 1, flatShading: true });
-    const shorts = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
-    const sock = new THREE.MeshStandardMaterial({ color: kit.sock, roughness: 1, flatShading: true });
-    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
-    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 1, flatShading: true });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc98d5b, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: kit.sock, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 0.7, metalness: 0.15, flatShading: true });
 
     // crouched torso + head
     const frontTex = kit.number != null
       ? K.makeFrontJersey({ base: kit.jersey, number: kit.number, country: kit.country })
       : null;
     const matFront = frontTex
-      ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 1, flatShading: true })
+      ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 0.7, metalness: 0.15, flatShading: true })
       : jersey;
     const torsoMats = [jersey, jersey, jersey, jersey, matFront, jersey];
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.5), torsoMats);

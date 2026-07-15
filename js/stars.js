@@ -29,6 +29,14 @@
     const g = new THREE.Group();
     g.add(star);
     g.userData = { type: 'star', z: 0, lane: 0, taken: false };
+    
+    let ph = Math.random() * Math.PI;
+    g.userData.animate = function(dt) {
+      ph += dt * 3;
+      star.rotation.y += dt * 2.5;
+      star.position.y = Math.sin(ph) * 0.15;
+      mat.emissiveIntensity = 0.5 + Math.sin(ph * 2) * 0.3;
+    };
     return g;
   }
 

@@ -1,5 +1,5 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #0a1018; font-family: 'Rajdhani', 'Segoe UI', Tahoma, sans-serif; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0a1018; font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif; }
 #game { position: fixed; inset: 0; }
 canvas { display: block; }
 .hidden { display: none !important; }
@@ -26,7 +26,7 @@ canvas { display: block; }
   align-items: center; justify-content: center; text-align: center; color: #fff;
   background: radial-gradient(ellipse at center, rgba(20,50,30,.55), rgba(8,20,12,.88));
   backdrop-filter: blur(3px);
-  padding: 24px; overflow-y: auto;
+  padding: 24px; overflow: hidden;
   transition: opacity .55s ease;
 }
 .overlay.fade-out { opacity: 0; pointer-events: none; }
@@ -45,7 +45,7 @@ canvas { display: block; }
 #loadingScreen { background: #0a1018; z-index: 30; }
 
 .title {
-  font-family: 'Bebas Neue', 'Rajdhani', sans-serif;
+  font-family: 'Bebas Neue', 'Montserrat', sans-serif;
   font-size: 76px; font-weight: 400; letter-spacing: 3px; margin-bottom: 6px; line-height: 1;
   background: linear-gradient(90deg,#eaff7a,#43d17a); -webkit-background-clip: text; background-clip: text; color: transparent;
   text-shadow: 0 6px 26px rgba(80,220,120,.35);
@@ -54,7 +54,7 @@ canvas { display: block; }
 
 /* ---- loading screen ---- */
 .loading-logo {
-  font-family: 'Bebas Neue', 'Rajdhani', sans-serif;
+  font-family: 'Bebas Neue', 'Montserrat', sans-serif;
   font-size: 60px; letter-spacing: 3px; color: #fff; line-height: 1;
   text-shadow: 0 6px 30px rgba(0,0,0,.6); margin-bottom: 28px;
 }
@@ -68,24 +68,18 @@ canvas { display: block; }
 .loading-track { width: 280px; height: 8px; border-radius: 6px; background: rgba(255,255,255,.2); overflow: hidden; }
 .loading-fill { height: 100%; width: 0%; background: linear-gradient(90deg,#ffd54f,#43d17a); }
 
-/* ---- help screen figure (assets/pitch.svg legend) ---- */
-.help-figure {
-  width: min(520px, 82vw); border-radius: 14px; margin: 2px 0 18px;
-  box-shadow: 0 14px 38px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.16);
-}
-
 /* display font for key headings */
 .wc-name, .team-select-label, .lb-title, .kickoff-prompt, .invis-hud .invis-label, .loading-text {
-  font-family: 'Bebas Neue', 'Rajdhani', sans-serif;
+  font-family: 'Bebas Neue', 'Montserrat', sans-serif;
 }
 .wc-name { letter-spacing: 1px; }
 .btn {
   pointer-events: auto; cursor: pointer; border: none; border-radius: 40px;
   padding: 16px 46px; font-size: 20px; font-weight: 800; color: #07210f;
   background: linear-gradient(180deg,#d6ff8a,#5fd36b);
-  box-shadow: 0 8px 26px rgba(70,200,100,.5); transition: transform .12s ease, box-shadow .12s ease;
+  box-shadow: 0 8px 26px rgba(70,200,100,.5), inset 0 2px 4px rgba(255,255,255,0.4); transition: transform .12s ease, box-shadow .12s ease;
 }
-.btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 30px rgba(70,200,100,.6); }
+.btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 30px rgba(70,200,100,.6), inset 0 2px 8px rgba(255,255,255,0.6); }
 .btn:active { transform: translateY(1px) scale(.98); }
 .final { font-size: 22px; margin: 4px 0 2px; }
 .final b { color: #d6ff8a; }
@@ -205,7 +199,8 @@ canvas { display: block; }
 .world-card {
   pointer-events: auto; cursor: pointer; width: 200px; padding: 20px 16px;
   border-radius: 18px; background: rgba(255,255,255,.10);
-  border: 2px solid rgba(255,255,255,.25); backdrop-filter: blur(2px);
+  border: 2px solid rgba(255,255,255,.25); backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
   transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
 }
 .world-card:hover { transform: translateY(-4px) scale(1.03); border-color: #d6ff8a; background: rgba(255,255,255,.18); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
@@ -262,7 +257,7 @@ canvas { display: block; }
 
 /* ---- main menu ---- */
 .mm-logo {
-  font-family: 'Bebas Neue', 'Rajdhani', sans-serif;
+  font-family: 'Bebas Neue', 'Montserrat', sans-serif;
   font-size: 84px; letter-spacing: 4px; line-height: 1; color: #fff; margin-bottom: 4px;
   text-shadow: 0 8px 34px rgba(0,0,0,.6);
 }
@@ -272,7 +267,7 @@ canvas { display: block; }
 .mm-howto {
   pointer-events: auto; cursor: pointer; margin-top: 26px; background: none; border: none;
   color: #fff; opacity: .8; font-size: 14px; font-weight: 700; letter-spacing: 2px; text-decoration: underline;
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Montserrat', sans-serif;
 }
 .mm-howto:hover { opacity: 1; }
 
@@ -291,11 +286,11 @@ canvas { display: block; }
 .cust-preview {
   display: flex; flex-direction: column; align-items: center;
   background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.18); border-radius: 18px; padding: 10px 14px 16px;
-  min-width: 280px;
+  min-width: 264px;
 }
-#previewCanvas { width: 260px; height: 340px; display: block; }
+#previewCanvas { width: 240px; height: 310px; display: block; }
 .cust-info { text-align: center; margin-top: 8px; }
-.cust-name { font-family: 'Bebas Neue','Rajdhani',sans-serif; font-size: 30px; letter-spacing: 1px; color: #fff; }
+.cust-name { font-family: 'Bebas Neue','Montserrat',sans-serif; font-size: 30px; letter-spacing: 1px; color: #fff; }
 .cust-num { font-size: 26px; font-weight: 900; color: #ffd54f; margin-top: -2px; }
 .cust-country { font-size: 15px; font-weight: 700; letter-spacing: 3px; opacity: .85; margin-top: 2px; }
 .cust-list {
@@ -306,6 +301,8 @@ canvas { display: block; }
   pointer-events: auto; cursor: pointer; display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
   padding: 12px 16px; border-radius: 14px; background: rgba(255,255,255,.10);
   border: 2px solid rgba(255,255,255,.22); color: #fff; text-align: left;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
   transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
 }
 .player-card:hover { transform: translateY(-3px); border-color: #d6ff8a; }

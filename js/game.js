@@ -32,7 +32,7 @@
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 1.15;
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -514,9 +514,9 @@
     const canvas = document.getElementById('previewCanvas');
     previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    previewRenderer.setSize(260, 340, false);
+    previewRenderer.setSize(240, 310, false);
     previewScene = new THREE.Scene();
-    previewCam = new THREE.PerspectiveCamera(42, 260 / 340, 0.1, 100);
+    previewCam = new THREE.PerspectiveCamera(42, 240 / 310, 0.1, 100);
     previewCam.position.set(0, 1.85, 5.2);
     previewCam.lookAt(0, 1.35, 0);
     previewScene.add(new THREE.HemisphereLight(0xffffff, 0x556070, 1.0));
@@ -747,11 +747,17 @@
     // power-up timers + HUD
     if (speedBoostT > 0) speedBoostT -= dt;
     if (magnetT > 0) magnetT -= dt;
+    // GOLDEN BOOT: turn the player's boots gold while the magnet is active
+    const bm = player.userData.bootMat;
+    if (bm) {
+      if (magnetT > 0) { bm.color.setHex(0xffd54f); bm.emissive.setHex(0xffb300); bm.emissiveIntensity = 0.5; }
+      else { bm.color.setHex(0x20242b); bm.emissive.setHex(0x000000); bm.emissiveIntensity = 0; }
+    }
     if (shield || speedBoostT > 0 || magnetT > 0) {
       powerHud.classList.remove('hidden');
       if (shield) { powerIcon.textContent = '🛡️'; powerLabel.textContent = 'SHIELD'; powerFill.style.width = '100%'; }
       else if (speedBoostT > 0) { powerIcon.textContent = '⚡'; powerLabel.textContent = 'SPEED'; powerFill.style.width = (speedBoostT / 4 * 100) + '%'; }
-      else { powerIcon.textContent = '🧲'; powerLabel.textContent = 'MAGNET'; powerFill.style.width = (magnetT / 5 * 100) + '%'; }
+      else { powerIcon.textContent = '👢'; powerLabel.textContent = 'GOLDEN BOOT'; powerFill.style.width = (magnetT / 5 * 100) + '%'; }
     } else powerHud.classList.add('hidden');
 
     // KICKOFF BLAST power run
@@ -814,9 +820,10 @@
     }
     for (let i = stars.length - 1; i >= 0; i--) {
       const b = stars[i];
-      if (magnetT > 0) b.position.x += (u.x - b.position.x) * Math.min(1, dt * 6);
+      if (magnetT > 0) b.position.x += (u.x - b.position.x) * Math.min(1, dt * 10);
       b.position.z += moveAmt; b.userData.z = b.position.z;
-      if (b.userData.z > DESPAWN_Z) { starGroup.remove(b); stars.splice(i, 1); continue; }
+      if (b.userData.animate) b.userData.animate(dt);
+      if (b.userData.z > DESPAWN_Z) { starGroup.remove(b); stars.splice(stars.indexOf(b), 1); continue; }
       checkStar(b);
     }
     for (let i = powerups.length - 1; i >= 0; i--) {

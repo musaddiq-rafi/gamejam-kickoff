@@ -11,11 +11,11 @@
     const jerseyColor = kit.jersey != null ? kit.jersey : 0xd94f45;
     const shortsColor = kit.shorts != null ? kit.shorts : 0xe7e2d6;
     const sockColor = kit.sock != null ? kit.sock : jerseyColor;
-    const skin = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 1, flatShading: true });
-    const jersey = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 1, flatShading: true });
-    const shorts = new THREE.MeshStandardMaterial({ color: shortsColor, roughness: 1, flatShading: true });
-    const sock = new THREE.MeshStandardMaterial({ color: sockColor, roughness: 1, flatShading: true });
-    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
+    const skin = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: shortsColor, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: sockColor, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 0.7, metalness: 0.15, flatShading: true });
 
     // Our runner faces -z (ball dribbled ahead), camera sits at +z behind him,
     // so the camera-facing (+z) face must be the BACK (name + number),
@@ -23,8 +23,8 @@
     const hasNum = kit.number != null;
     const frontTex = hasNum ? K.makeFrontJersey({ base: jerseyColor, number: kit.number, country: kit.country }) : null;
     const backTex = hasNum ? K.makeBackJersey({ base: jerseyColor, number: kit.number, name: kit.name || '' }) : null;
-    const matFront = hasNum ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 1, flatShading: true }) : jersey;
-    const matBack = hasNum ? new THREE.MeshStandardMaterial({ map: backTex, color: 0xffffff, roughness: 1, flatShading: true }) : jersey;
+    const matFront = hasNum ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 0.7, metalness: 0.15, flatShading: true }) : jersey;
+    const matBack = hasNum ? new THREE.MeshStandardMaterial({ map: backTex, color: 0xffffff, roughness: 0.7, metalness: 0.15, flatShading: true }) : jersey;
     // BoxGeometry face order: +x,-x,+y,-y,+z(camera side = back),-z(away = front/chest)
     const torsoMats = [jersey, jersey, jersey, jersey, matBack, matFront];
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.0, 0.45), torsoMats);
@@ -32,7 +32,7 @@
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), skin);
     head.position.y = 2.2; head.castShadow = true;
     const hair = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.2, 0.58),
-      new THREE.MeshStandardMaterial({ color: 0x2e1d10, roughness: 1, flatShading: true }));
+      new THREE.MeshStandardMaterial({ color: 0x2e1d10, roughness: 0.7, metalness: 0.15, flatShading: true }));
     hair.position.y = 2.48;
 
     // arms (pivots at shoulder)
@@ -57,8 +57,19 @@
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.18, 0.5), boot);
       b.position.set(0, -0.86, -0.08); l.add(b);
     });
+    player.userData.bootMat = boot;
 
-    player.add(torso, head, hair, armLPivot, armRPivot, legLPivot, legRPivot);
+    const sweatband = new THREE.Mesh(new THREE.BoxGeometry(0.57, 0.12, 0.57), 
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, flatShading: true }));
+    sweatband.position.y = 2.4; sweatband.castShadow = true;
+
+    // simple drop shadow on the ground
+    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false });
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), shadowMat);
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.02; // slightly above ground
+
+    player.add(torso, head, hair, sweatband, armLPivot, armRPivot, legLPivot, legRPivot, shadow);
 
     // dribbled ball in front of the player's feet (forward = -z, the running direction)
     const ballTex = K.makeSoccerTexture();
