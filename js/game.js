@@ -106,7 +106,7 @@
       playerGlow.position.set(0, 1.2, 0);
       playerAura = new THREE.Mesh(
         new THREE.SphereGeometry(1.7, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
+        new THREE.MeshBasicMaterial({ color: 0x6fd6ff, transparent: true, opacity: 0, depthWrite: false })
       );
       playerAura.position.y = 1.1;
     }
@@ -315,6 +315,7 @@
 
   function setPlayerGhost(on) {
     player.traverse(n => {
+      if (n === playerAura) return; // keep the aura translucent + non-occluding
       if (n.isMesh && n.material) {
         const mats = Array.isArray(n.material) ? n.material : [n.material];
         mats.forEach(m => { m.transparent = false; m.opacity = 1; m.depthWrite = true; });
@@ -323,8 +324,8 @@
     playerGlow.color.set(0x2a3bff);
     playerGlow.intensity = on ? 1.6 : 0;
     playerAura.visible = on;
-    playerAura.material.color.set(0x141a33);
-    playerAura.material.opacity = on ? 0.34 : 0;
+    playerAura.material.color.set(0x6fd6ff);
+    playerAura.material.opacity = on ? 0.16 : 0;
   }
   function fadeObj(obj, op) {
     obj.traverse(n => {
@@ -377,9 +378,10 @@
     const freeLane = order[blockedCount];
     const n = 3 + ((Math.random() * 4) | 0);
     let orbSpawned = false, orbIdx = -1, orbType = 'speed';
-    if (Math.random() < 0.10) {
+    if (Math.random() < 0.22) {
       orbSpawned = true; orbIdx = (Math.random() * n) | 0;
-      const types = ['speed', 'magnet', 'shield', 'life'];
+      // weight the GOLDEN BOOT a little higher so it's actually encountered
+      const types = ['speed', 'magnet', 'magnet', 'shield', 'life'];
       orbType = types[(Math.random() * types.length) | 0];
     }
     for (let i = 0; i < n; i++) {
