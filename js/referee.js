@@ -14,10 +14,10 @@
 
   function create() {
     const g = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: 0xc98a5b, roughness: 0.85 });
-    const shirt = new THREE.MeshStandardMaterial({ map: stripeTexture(), roughness: 0.7 });
-    const black = new THREE.MeshStandardMaterial({ color: 0x111111 });
-    const white = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc98d5b, roughness: 1, flatShading: true });
+    const shirt = new THREE.MeshStandardMaterial({ map: stripeTexture(), roughness: 1, flatShading: true });
+    const black = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
+    const white = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 1, flatShading: true });
 
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.95, 0.44), shirt);
     torso.position.y = 1.4; torso.castShadow = true;
@@ -25,7 +25,7 @@
     head.position.y = 2.12; head.castShadow = true;
     // whistle on a lanyard
     const whistle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.18),
-      new THREE.MeshStandardMaterial({ color: 0xffd54f, emissive: 0x665500, emissiveIntensity: 0.3 }));
+      new THREE.MeshStandardMaterial({ color: 0xf2d06b, emissive: 0x665500, emissiveIntensity: 0.3, roughness: 1, flatShading: true }));
     whistle.position.set(0, 1.85, 0.24);
 
     const armL = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.8, 0.21), shirt);

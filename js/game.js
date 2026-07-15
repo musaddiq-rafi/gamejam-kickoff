@@ -128,7 +128,7 @@
   let freeKickReady = false; // bar full, waiting for SPACE (game keeps running)
   let ballKicked = false, ballReturning = false, ballKickT = 0, ballReturnT = 0;
   const ballReturnFrom = new THREE.Vector3();
-  const LEG_POS = new THREE.Vector3(0, 0.32, 0.7);    // ball at the player's feet
+  const LEG_POS = new THREE.Vector3(0, 0.32, 1.05);    // ball dribbled a bit ahead of the feet
   const BALL_AHEAD = new THREE.Vector3(0, 1.8, -11); // ball kicked forward
   const camLook = new THREE.Vector3();
 

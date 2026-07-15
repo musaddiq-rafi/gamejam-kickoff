@@ -21,8 +21,8 @@
 
   function create() {
     const mat = new THREE.MeshStandardMaterial({
-      color: 0xffe14d, metalness: 0.6, roughness: 0.3,
-      emissive: 0xffb300, emissiveIntensity: 0.45
+      color: 0xf2d06b, metalness: 0.0, roughness: 0.7, flatShading: true,
+      emissive: 0xf2a03c, emissiveIntensity: 0.5
     });
     const star = new THREE.Mesh(starGeometry(), mat);
     star.castShadow = true;

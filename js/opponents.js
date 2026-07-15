@@ -48,12 +48,12 @@
 
   function buildKeeper(kit) {
     const g = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: 0xc98a5b, roughness: 0.85 });
-    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 0.7 });
-    const shorts = new THREE.MeshStandardMaterial({ color: 0x222222 });
-    const sock = new THREE.MeshStandardMaterial({ color: kit.sock });
-    const boot = new THREE.MeshStandardMaterial({ color: 0x111111 });
-    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.6 });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc98d5b, roughness: 1, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 1, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: kit.sock, roughness: 1, flatShading: true });
+    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 1, flatShading: true });
 
     // crouched torso + head
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.5), jersey);

@@ -52,7 +52,7 @@
       new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.9, flatShading: true })
     );
     ball.castShadow = true;
-    ball.position.set(0, 0.32, 0.7);
+    ball.position.set(0, 0.32, 1.05);
     player.add(ball);
 
     player.userData = {
@@ -65,13 +65,13 @@
       if (!rolling) {
         legLPivot.rotation.x = swing; legRPivot.rotation.x = -swing;
         armLPivot.rotation.x = -swing * 0.8; armRPivot.rotation.x = swing * 0.8;
-        ball.position.z = 0.7 + Math.sin(phase) * 0.12;
+        ball.position.z = 1.05 + Math.sin(phase) * 0.12;
         ball.position.y = 0.32 + Math.abs(Math.sin(phase * 1.2)) * 0.12;
         ball.rotation.x = -phase * 2;
       } else {
         legLPivot.rotation.x = 0.3; legRPivot.rotation.x = 0.3;
         armLPivot.rotation.x = -1.5; armRPivot.rotation.x = -1.5;
-        ball.position.set(0, 0.25, 0.9);
+        ball.position.set(0, 0.25, 1.25);
       }
     }
 
