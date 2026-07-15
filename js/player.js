@@ -2,14 +2,15 @@
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
 
-  function create(scene) {
+  function create(scene, kit) {
+    kit = kit || {};
     const player = new THREE.Group();
     scene.add(player);
 
     const skin = new THREE.MeshStandardMaterial({ color: 0xf2c79a, roughness: 1, flatShading: true });
-    const jersey = new THREE.MeshStandardMaterial({ color: 0xd94f45, roughness: 1, flatShading: true });
-    const shorts = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 1, flatShading: true });
-    const sock = new THREE.MeshStandardMaterial({ color: 0xd94f45, roughness: 1, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey != null ? kit.jersey : 0xd94f45, roughness: 1, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: kit.shorts != null ? kit.shorts : 0xe7e2d6, roughness: 1, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: kit.jersey != null ? kit.jersey : 0xd94f45, roughness: 1, flatShading: true });
     const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
 
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.0, 0.45), jersey);
@@ -57,7 +58,8 @@
 
     player.userData = {
       lane: 1, x: 0, y: 0, vy: 0, jumping: false, rolling: false, rollT: 0,
-      height: 2.0, rollHeight: 0.95, ball
+      height: 2.0, rollHeight: 0.95, ball,
+      mat: { jersey, shorts, sock }
     };
 
     function animate(phase, rolling, t) {

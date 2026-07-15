@@ -12,12 +12,45 @@
 <div class="hud">
   <div>
     <div class="score" id="score">0</div>
-    <div class="sub">METRES</div>
+    <div class="sub">SCORE</div>
+    <div class="dist" id="distEl">0 m</div>
   </div>
-  <div class="stars"><span class="star-icon"></span><span id="starCount">0</span></div>
+  <div class="right">
+    <div class="stars"><span class="star-icon"></span><span id="starCount">0</span></div>
+    <div class="combo hidden" id="comboEl"><span id="comboMult">x2</span> <span class="combo-n">COMBO</span></div>
+    <div class="powerup hidden" id="powerHud">
+      <span class="pu-icon" id="powerIcon">⚡</span>
+      <span class="pu-label" id="powerLabel">SPEED</span>
+      <div class="pu-bar"><div class="pu-fill" id="powerFill"></div></div>
+    </div>
+  </div>
 </div>
 
+<div class="commentary hidden" id="commentary"></div>
+<div class="banner hidden" id="phaseBanner"></div>
+<div class="style-banner hidden" id="styleBanner"></div>
+<div class="popups" id="popups"></div>
+
 <div class="flash" id="flash"></div>
+
+<div class="tutorial hidden" id="tutorial">
+  <div class="tut-start">Press SPACE / any key to play</div>
+  <div class="tut-row"><span class="key">← →</span> Switch lanes</div>
+  <div class="tut-row"><span class="key">↑ / SPACE</span> Jump</div>
+  <div class="tut-row"><span class="key">↓ / S</span> Roll / slide</div>
+  <div class="tut-row"><span class="key">P / ESC</span> Pause</div>
+  <div class="tut-row tut-goal">Grab ⭐ to charge your KICKOFF BLAST — press SPACE to unleash it!</div>
+</div>
+
+<div class="overlay hidden" id="pauseScreen">
+  <div class="title" style="font-size:40px;">PAUSED</div>
+  <div class="pause-row"><label>Music</label><input type="range" id="volMusic" min="0" max="100" value="50"></div>
+  <div class="pause-row"><label>SFX</label><input type="range" id="volSfx" min="0" max="100" value="60"></div>
+  <button class="btn" id="resumeBtn">RESUME</button>
+  <button class="btn btn-ghost" id="pauseRestart">RESTART</button>
+  <button class="btn btn-ghost" id="pauseWorld">CHANGE WORLD</button>
+  <button class="btn btn-ghost" id="muteBtn">MUTE</button>
+</div>
 
 <div class="intro-banner hidden" id="introBanner">
   <div class="ib-1" id="introL1">REFEREE WHISTLES</div>
@@ -31,15 +64,15 @@
   <div class="invis-bar"><div class="invis-fill" id="invisFill"></div></div>
 </div>
 
-<div class="fk-ready hidden" id="fkReady">⚽ FREE KICK READY — press SPACE</div>
+<div class="fk-ready hidden" id="fkReady">⚽ KICKOFF BLAST READY — press SPACE</div>
 
 <div class="freekick-banner hidden" id="freeKick">
-  <div class="fk-1" id="fk1">FREE KICK!</div>
+  <div class="fk-1" id="fk1">KICKOFF BLAST!</div>
   <div class="fk-2" id="fk2">Press SPACE to shoot &amp; run free</div>
 </div>
 
 <div class="fk-charge" id="fkCharge">
-  <div class="fk-charge-label">FREE KICK CHARGE</div>
+  <div class="fk-charge-label">KICKOFF METER</div>
   <div class="fk-charge-bar"><div class="fk-charge-fill" id="fkFill"></div></div>
 </div>
 
@@ -63,6 +96,14 @@
       <div class="wc-desc">A enclosed arena under the roof — close stands, bright spotlights and a scoreboard.</div>
     </div>
   </div>
+  <div class="team-select-label">CHOOSE YOUR TEAM</div>
+  <div class="team-cards">
+    <div class="team-card selected" data-team="red"><span class="tc-swatch" style="background:#d94f45"></span>Red Devils<span class="tc-perk">+5% speed</span></div>
+    <div class="team-card" data-team="blue"><span class="tc-swatch" style="background:#2d4a6b"></span>Blue Lions<span class="tc-perk">Shield start</span></div>
+    <div class="team-card" data-team="gold"><span class="tc-swatch" style="background:#e0a63c"></span>Golden Eagles<span class="tc-perk">Stars +10%</span></div>
+    <div class="team-card" data-team="green"><span class="tc-swatch" style="background:#2f9e8f"></span>Green Vipers<span class="tc-perk">Combo holds</span></div>
+    <div class="team-card" data-team="purple"><span class="tc-swatch" style="background:#9c4a86"></span>Purple Storm<span class="tc-perk">Blast 6s</span></div>
+  </div>
   <div class="keys">
     <kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lanes<br/>
     <kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump &nbsp;•&nbsp; <kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide<br/>
@@ -84,11 +125,21 @@
 
 <div class="overlay hidden" id="overScreen">
   <div class="title" style="font-size:46px;">TACKLED!</div>
-  <div class="final">Distance: <b id="finalScore">0</b> m</div>
-  <div class="final">Stars collected: <b id="finalStars">0</b></div>
-  <div class="final" style="font-size:17px;opacity:.85;" id="bestLine"></div>
-  <button class="btn" id="restartBtn" style="margin-top:18px;">PLAY AGAIN</button>
-  <button class="btn btn-ghost" id="changeWorldBtn" style="margin-top:12px;">CHANGE WORLD</button>
+  <div class="final best-banner hidden" id="bestBanner">🏆 NEW PERSONAL BEST! 🏆</div>
+  <div class="stats-grid">
+    <div class="stat"><span>Distance</span><b id="finalScore">0</b> m</div>
+    <div class="stat"><span>Score</span><b id="finalScoreVal">0</b></div>
+    <div class="stat"><span>Stars</span><b id="finalStars">0</b></div>
+    <div class="stat"><span>Best Combo</span><b id="finalCombo">x1</b></div>
+    <div class="stat"><span>Close Calls</span><b id="finalClose">0</b></div>
+    <div class="stat"><span>Kickoff Blasts</span><b id="finalBlasts">0</b></div>
+    <div class="stat"><span>Style Bonus</span><b id="finalStyle">0</b></div>
+    <div class="stat"><span>Best</span><b id="bestLine">0</b> m</div>
+  </div>
+  <div class="lb-title">LEADERBOARD</div>
+  <ol class="leaderboard" id="leaderboard"></ol>
+  <button class="btn" id="restartBtn" style="margin-top:14px;">PLAY AGAIN</button>
+  <button class="btn btn-ghost" id="changeWorldBtn" style="margin-top:10px;">CHANGE WORLD</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -106,6 +157,8 @@
 <script src="js/opponents.js"></script>
 <script src="js/referee.js"></script>
 <script src="js/stars.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/powerups.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

@@ -85,8 +85,43 @@
         o.start(now + b.t); o.stop(now + b.t + b.d + 0.02);
         lfo.start(now + b.t); lfo.stop(now + b.t + b.d + 0.02);
       });
-    }
+    },
+    // combo tier jingle — pitch climbs with the multiplier tier
+    combo: (tier) => { const base = 660 + tier * 130; blip(base, 0.07, 'triangle', 0.2); setTimeout(() => blip(base * 1.5, 0.08, 'triangle', 0.18), 50); },
+    // flair / style bonus chime
+    style: () => { blip(880, 0.08, 'square', 0.2); setTimeout(() => blip(1320, 0.1, 'square', 0.18), 60); setTimeout(() => blip(1760, 0.12, 'triangle', 0.16), 120); },
+    // power-up pickup whoosh
+    power: () => blip(300, 0.18, 'sawtooth', 0.2, 900),
+    shieldUp: () => blip(520, 0.12, 'sine', 0.22, 780),
+    shieldBreak: () => { noiseBurst(0.25, 0.4); blip(220, 0.2, 'square', 0.2, 80); }
   };
+
+  // crowd ambience: a filtered-noise bed whose level + brightness rise with the combo
+  let ambientSrc = null, ambientGain = null, ambientFilter = null;
+  function startAmbient() {
+    if (!ctx || ambientSrc) return;
+    const dur = 2.0;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 500;
+    const g = ctx.createGain(); g.gain.value = 0.0;
+    src.connect(filt); filt.connect(g); g.connect(master);
+    src.start();
+    ambientSrc = src; ambientFilter = filt; ambientGain = g;
+  }
+  function stopAmbient() {
+    if (ambientSrc) { try { ambientSrc.stop(); } catch (e) {} ambientSrc.disconnect(); ambientSrc = null; }
+  }
+  function setCrowd(level) {
+    if (!ambientGain || !ctx) return;
+    const lv = Math.max(0, Math.min(1, level));
+    ambientGain.gain.setTargetAtTime(lv * 0.3, ctx.currentTime, 0.3);
+    ambientFilter.frequency.setTargetAtTime(380 + lv * 900, ctx.currentTime, 0.3);
+  }
+  function musicGainSet(v) { if (musicGain) musicGain.gain.value = Math.max(0, Math.min(1, v)) * 0.5; }
+  function masterGainSet(v) { master.gain.value = Math.max(0, Math.min(1, v)) * 0.6; }
 
   // light looping stadium chant / arpeggio
   const notes = [262, 330, 392, 523, 440, 392];
@@ -104,5 +139,5 @@
   function stopMusic() { if (musicTimer) { clearInterval(musicTimer); musicTimer = null; } }
   function toggle() { enabled = !enabled; if (master) master.gain.value = enabled ? 0.5 : 0; return enabled; }
 
-  K.Audio = { init, resume, startMusic, stopMusic, toggle, sfx, get enabled() { return enabled; } };
+  K.Audio = { init, resume, startMusic, stopMusic, toggle, sfx, startAmbient, stopAmbient, setCrowd, musicGainSet, masterGainSet, get enabled() { return enabled; } };
 })();
