@@ -5,16 +5,16 @@
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
 
-  const PLAYER_KIT = { jersey: 0x1e88e5, sock: 0x1e88e5 }; // all players same blue
-  const KEEPER_KIT = { jersey: 0x2ecc71, sock: 0x2ecc71 }; // keeper is special green
+  const PLAYER_KIT = { jersey: 0x3a7ca5, sock: 0x2d4a6b }; // all rivals same blue kit
+  const KEEPER_KIT = { jersey: 0x2f9e8f, sock: 0x216b60 }; // keeper is special teal
 
   function buildPlayer(kit) {
     const g = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: 0xc98a5b, roughness: 0.85 });
-    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 0.7 });
-    const shorts = new THREE.MeshStandardMaterial({ color: 0x222222 });
-    const sock = new THREE.MeshStandardMaterial({ color: kit.sock });
-    const boot = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc98d5b, roughness: 1, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey, roughness: 1, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: kit.sock, roughness: 1, flatShading: true });
+    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
 
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.95, 0.44), jersey);
     torso.position.y = 1.4; torso.castShadow = true;

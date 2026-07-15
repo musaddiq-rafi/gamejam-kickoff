@@ -6,18 +6,18 @@
     const player = new THREE.Group();
     scene.add(player);
 
-    const skin = new THREE.MeshStandardMaterial({ color: 0xf1c27d, roughness: 0.85 });
-    const jersey = new THREE.MeshStandardMaterial({ color: 0xe53935, roughness: 0.7 });
-    const shorts = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
-    const sock = new THREE.MeshStandardMaterial({ color: 0xe53935, roughness: 0.8 });
-    const boot = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xf2c79a, roughness: 1, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: 0xd94f45, roughness: 1, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 1, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: 0xd94f45, roughness: 1, flatShading: true });
+    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
 
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.0, 0.45), jersey);
     torso.position.y = 1.45; torso.castShadow = true;
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), skin);
     head.position.y = 2.2; head.castShadow = true;
     const hair = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.2, 0.58),
-      new THREE.MeshStandardMaterial({ color: 0x3a2412 }));
+      new THREE.MeshStandardMaterial({ color: 0x2e1d10, roughness: 1, flatShading: true }));
     hair.position.y = 2.48;
 
     // arms (pivots at shoulder)
@@ -48,8 +48,8 @@
     // dribbled ball in front of the player's feet
     const ballTex = K.makeSoccerTexture();
     const ball = new THREE.Mesh(
-      new THREE.SphereGeometry(0.32, 20, 20),
-      new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.5 })
+      new THREE.SphereGeometry(0.32, 14, 10),
+      new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.9, flatShading: true })
     );
     ball.castShadow = true;
     ball.position.set(0, 0.32, 0.7);

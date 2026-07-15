@@ -18,6 +18,8 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -25,9 +27,10 @@
   camera.position.set(0, 4.4, 9);
   camera.lookAt(0, 1.4, -12);
 
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x445533, 1.0);
+  // soft sky/ground fill so shadows aren't pure black — the sun does the real lighting
+  const hemi = new THREE.HemisphereLight(0xcfe4f5, 0x4a5a3a, 0.45);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xffffff, 0.95);
+  const sun = new THREE.DirectionalLight(0xfff6e6, 1.35); // the one natural key light
   sun.position.set(14, 34, 12);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
@@ -36,7 +39,56 @@
   sun.shadow.camera.top = 35; sun.shadow.camera.bottom = -35;
   scene.add(sun);
 
+  // per-world lighting so the key light matches each scene's own sun / arena lamps
+  const LIGHTING = {
+    worldcup: { sun: { pos: [14, 34, 12], color: 0xfff6e6, intensity: 1.35, shadow: true },
+                hemi: { sky: 0xcfe4f5, ground: 0x4a5a3a, intensity: 0.45 } },
+    // beach: light aligned with the visible sun ahead-left & low on the horizon
+    beach:    { sun: { pos: [-6, 13, -48], color: 0xffe3b0, intensity: 1.45, shadow: true },
+                hemi: { sky: 0xbfe9ff, ground: 0xd9b676, intensity: 0.6 } },
+    // indoor: overhead arena lamps -> light straight down (shadow beneath, not angled), brighter fill
+    indoor:   { sun: { pos: [0, 46, -16], color: 0xfff2dd, intensity: 0.8, shadow: true },
+                hemi: { sky: 0x8390a6, ground: 0x2f3a2a, intensity: 0.8 } }
+  };
+  function applyLighting(world) {
+    const L = LIGHTING[world] || LIGHTING.worldcup;
+    hemi.color.setHex(L.hemi.sky); hemi.groundColor.setHex(L.hemi.ground); hemi.intensity = L.hemi.intensity;
+    sun.position.set(L.sun.pos[0], L.sun.pos[1], L.sun.pos[2]);
+    sun.color.setHex(L.sun.color); sun.intensity = L.sun.intensity; sun.castShadow = L.sun.shadow;
+    sun.target.position.set(0, 0, 0); sun.target.updateMatrixWorld();
+  }
+
+  // ---- post-processing: bloom + vignette + FXAA ----
+  const VignetteShader = {
+    uniforms: { tDiffuse: { value: null }, offset: { value: 1.15 }, darkness: { value: 1.1 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: [
+      'uniform sampler2D tDiffuse; uniform float offset; uniform float darkness; varying vec2 vUv;',
+      'void main(){',
+      '  vec4 tex = texture2D(tDiffuse, vUv);',
+      '  vec2 uv = (vUv - 0.5) * offset;',
+      '  float vig = clamp(1.0 - dot(uv, uv) * darkness, 0.0, 1.0);',
+      '  gl_FragColor = vec4(tex.rgb * mix(0.78, 1.0, vig), tex.a);',
+      '}'
+    ].join('\n')
+  };
+  const composer = new THREE.EffectComposer(renderer);
+  composer.setSize(window.innerWidth, window.innerHeight);
+  composer.addPass(new THREE.RenderPass(scene, camera));
+  const bloomPass = new THREE.UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight), 0.35, 0.45, 0.92); // strength, radius, threshold
+  composer.addPass(bloomPass);
+  composer.addPass(new THREE.ShaderPass(VignetteShader));
+  const fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
+  function setFxaa() {
+    const pr = renderer.getPixelRatio();
+    fxaaPass.material.uniforms.resolution.value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+  }
+  setFxaa();
+  composer.addPass(fxaaPass);
+
   let field = K.Field.create(scene, 'worldcup');
+  applyLighting('worldcup');
   const playerObj = K.Player.create(scene);
   const player = playerObj.group;
 
@@ -133,6 +185,7 @@
   function startGame(world) {
     if (world) currentWorld = world;
     field = K.Field.create(scene, currentWorld);
+    applyLighting(currentWorld);
     resetGame();
     introT = 0;
     state = 'intro';
@@ -290,8 +343,8 @@
     else { if (Math.abs(dy) > 24) { dy < 0 ? doJump() : doRoll(); } }
   }, { passive: true });
 
-  document.getElementById('startBtn').addEventListener('click', startGame);
-  document.getElementById('restartBtn').addEventListener('click', startGame);
+  document.getElementById('startBtn').addEventListener('click', () => startGame());
+  document.getElementById('restartBtn').addEventListener('click', () => startGame());
 
   // world selection
   const worldScreen = document.getElementById('worldScreen');
@@ -492,7 +545,7 @@
     else if (state === 'intro') updateIntro(dt);
     scoreEl.textContent = Math.floor(distance);
     starEl.textContent = starCount;
-    renderer.render(scene, camera);
+    composer.render();
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
@@ -501,5 +554,8 @@
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    bloomPass.setSize(window.innerWidth, window.innerHeight);
+    setFxaa();
   });
 })();
