@@ -7,13 +7,27 @@
     const player = new THREE.Group();
     scene.add(player);
 
-    const skin = new THREE.MeshStandardMaterial({ color: 0xf2c79a, roughness: 1, flatShading: true });
-    const jersey = new THREE.MeshStandardMaterial({ color: kit.jersey != null ? kit.jersey : 0xd94f45, roughness: 1, flatShading: true });
-    const shorts = new THREE.MeshStandardMaterial({ color: kit.shorts != null ? kit.shorts : 0xe7e2d6, roughness: 1, flatShading: true });
-    const sock = new THREE.MeshStandardMaterial({ color: kit.jersey != null ? kit.jersey : 0xd94f45, roughness: 1, flatShading: true });
+    const skinColor = kit.skin != null ? kit.skin : 0xf2c79a;
+    const jerseyColor = kit.jersey != null ? kit.jersey : 0xd94f45;
+    const shortsColor = kit.shorts != null ? kit.shorts : 0xe7e2d6;
+    const sockColor = kit.sock != null ? kit.sock : jerseyColor;
+    const skin = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 1, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: jerseyColor, roughness: 1, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: shortsColor, roughness: 1, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: sockColor, roughness: 1, flatShading: true });
     const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
 
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.0, 0.45), jersey);
+    // Our runner faces -z (ball dribbled ahead), camera sits at +z behind him,
+    // so the camera-facing (+z) face must be the BACK (name + number),
+    // while the -z (chest, toward the ball) shows front (brand + badge + number).
+    const hasNum = kit.number != null;
+    const frontTex = hasNum ? K.makeFrontJersey({ base: jerseyColor, number: kit.number, country: kit.country }) : null;
+    const backTex = hasNum ? K.makeBackJersey({ base: jerseyColor, number: kit.number, name: kit.name || '' }) : null;
+    const matFront = hasNum ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 1, flatShading: true }) : jersey;
+    const matBack = hasNum ? new THREE.MeshStandardMaterial({ map: backTex, color: 0xffffff, roughness: 1, flatShading: true }) : jersey;
+    // BoxGeometry face order: +x,-x,+y,-y,+z(camera side = back),-z(away = front/chest)
+    const torsoMats = [jersey, jersey, jersey, jersey, matBack, matFront];
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.0, 0.45), torsoMats);
     torso.position.y = 1.45; torso.castShadow = true;
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), skin);
     head.position.y = 2.2; head.castShadow = true;
@@ -41,25 +55,24 @@
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.4, 0.34), sock);
       s.position.y = -0.55; l.add(s);
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.18, 0.5), boot);
-      b.position.set(0, -0.86, 0.08); l.add(b);
+      b.position.set(0, -0.86, -0.08); l.add(b);
     });
 
     player.add(torso, head, hair, armLPivot, armRPivot, legLPivot, legRPivot);
 
-    // dribbled ball in front of the player's feet
+    // dribbled ball in front of the player's feet (forward = -z, the running direction)
     const ballTex = K.makeSoccerTexture();
     const ball = new THREE.Mesh(
       new THREE.SphereGeometry(0.32, 14, 10),
       new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.9, flatShading: true })
     );
     ball.castShadow = true;
-    ball.position.set(0, 0.32, 1.05);
+    ball.position.set(0, 0.32, -1.05);
     player.add(ball);
 
     player.userData = {
       lane: 1, x: 0, y: 0, vy: 0, jumping: false, rolling: false, rollT: 0,
-      height: 2.0, rollHeight: 0.95, ball,
-      mat: { jersey, shorts, sock }
+      height: 2.0, rollHeight: 0.95, ball
     };
 
     function animate(phase, rolling, t) {
@@ -67,13 +80,13 @@
       if (!rolling) {
         legLPivot.rotation.x = swing; legRPivot.rotation.x = -swing;
         armLPivot.rotation.x = -swing * 0.8; armRPivot.rotation.x = swing * 0.8;
-        ball.position.z = 1.05 + Math.sin(phase) * 0.12;
+        ball.position.z = -1.05 + Math.sin(phase) * 0.12;
         ball.position.y = 0.32 + Math.abs(Math.sin(phase * 1.2)) * 0.12;
         ball.rotation.x = -phase * 2;
       } else {
         legLPivot.rotation.x = 0.3; legRPivot.rotation.x = 0.3;
         armLPivot.rotation.x = -1.5; armRPivot.rotation.x = -1.5;
-        ball.position.set(0, 0.25, 1.25);
+        ball.position.set(0, 0.25, -1.05);
       }
     }
 

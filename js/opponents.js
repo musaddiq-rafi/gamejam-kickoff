@@ -5,8 +5,8 @@
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
 
-  const PLAYER_KIT = { jersey: 0x3a7ca5, sock: 0x2d4a6b }; // all rivals same blue kit
-  const KEEPER_KIT = { jersey: 0x2f9e8f, sock: 0x216b60 }; // keeper is special teal
+  const PLAYER_KIT = { jersey: 0x3a7ca5, sock: 0x2d4a6b, country: 'RIVAL' }; // all rivals same blue kit
+  const KEEPER_KIT = { jersey: 0x2f9e8f, sock: 0x216b60, country: 'RIVAL' }; // keeper is special teal
 
   function buildPlayer(kit) {
     const g = new THREE.Group();
@@ -16,7 +16,16 @@
     const sock = new THREE.MeshStandardMaterial({ color: kit.sock, roughness: 1, flatShading: true });
     const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 1, flatShading: true });
 
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.95, 0.44), jersey);
+    // number + brand + team badge on the front only
+    const frontTex = kit.number != null
+      ? K.makeFrontJersey({ base: kit.jersey, number: kit.number, country: kit.country })
+      : null;
+    const matFront = frontTex
+      ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 1, flatShading: true })
+      : jersey;
+    // BoxGeometry face order: +x,-x,+y,-y,+z(front),-z(back)
+    const torsoMats = [jersey, jersey, jersey, jersey, matFront, jersey];
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.95, 0.44), torsoMats);
     torso.position.y = 1.4; torso.castShadow = true;
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.52, 0.52), skin);
     head.position.y = 2.12; head.castShadow = true;
@@ -38,7 +47,7 @@
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.38, 0.32), sock);
       s.position.y = -0.52; l.add(s);
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.16, 0.46), boot);
-      b.position.set(0, -0.82, 0.07); l.add(b);
+      b.position.set(0, -0.82, -0.07); l.add(b);
     });
 
     g.add(torso, head, armLP, armRP, legLP, legRP);
@@ -56,7 +65,14 @@
     const gloveMat = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 1, flatShading: true });
 
     // crouched torso + head
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.5), jersey);
+    const frontTex = kit.number != null
+      ? K.makeFrontJersey({ base: kit.jersey, number: kit.number, country: kit.country })
+      : null;
+    const matFront = frontTex
+      ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 1, flatShading: true })
+      : jersey;
+    const torsoMats = [jersey, jersey, jersey, jersey, matFront, jersey];
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.5), torsoMats);
     torso.position.y = 1.15; torso.castShadow = true;
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), skin);
     head.position.y = 1.85; head.castShadow = true;
@@ -77,7 +93,7 @@
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.25, 0.34), sock);
       s.position.y = -0.4; l.add(s);
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.16, 0.48), boot);
-      b.position.set(0, -0.62, 0.07); l.add(b);
+      b.position.set(0, -0.62, -0.07); l.add(b);
     });
 
     g.add(torso, head, armL, armR, gloveL, gloveR, legL, legR);
@@ -85,9 +101,10 @@
     return g;
   }
 
-  function create(lane, type) {
+  function create(lane, type, number) {
     if (type === 'keeper') {
-      const g = buildKeeper(KEEPER_KIT);
+      const kit = Object.assign({}, KEEPER_KIT, { number: number != null ? number : 1 });
+      const g = buildKeeper(kit);
       g.position.x = 0; // centred, spans all lanes
       const ud = g.userData;
       ud.type = 'keeper'; ud.lane = lane; ud.z = 0; ud.halfDepth = 0.6;
@@ -102,7 +119,8 @@
       return g;
     }
     // player
-    const g = buildPlayer(PLAYER_KIT);
+    const kit = Object.assign({}, PLAYER_KIT, { number: number != null ? number : (2 + ((Math.random() * 9) | 0)) });
+    const g = buildPlayer(kit);
     const ud = g.userData;
     ud.type = 'player'; ud.lane = lane; ud.z = 0; ud.halfDepth = 0.45;
     let ph = Math.random() * 10;

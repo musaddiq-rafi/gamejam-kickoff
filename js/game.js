@@ -13,14 +13,17 @@
   const CAM_INTRO_POS = new THREE.Vector3(0, 22, 11);
   const CAM_INTRO_LOOK = new THREE.Vector3(0, 0, -3);
 
-  const TEAMS = {
-    red:    { name: 'Red Devils',    jersey: 0xd94f45, shorts: 0xe7e2d6, speed: 1.05, star: 1.0,  combo: 1.0,  blast: 5 },
-    blue:   { name: 'Blue Lions',    jersey: 0x2d4a6b, shorts: 0x20242b, speed: 1.0,  star: 1.0,  combo: 1.0,  blast: 5, shieldStart: true },
-    gold:   { name: 'Golden Eagles', jersey: 0xe0a63c, shorts: 0x20242b, speed: 1.0,  star: 1.1,  combo: 1.0,  blast: 5 },
-    green:  { name: 'Green Vipers',  jersey: 0x2f9e8f, shorts: 0xe7e2d6, speed: 1.0,  star: 1.0,  combo: 1.6,  blast: 5 },
-    purple: { name: 'Purple Storm',  jersey: 0x9c4a86, shorts: 0x20242b, speed: 1.0,  star: 1.0,  combo: 1.0,  blast: 6 }
+  const PLAYERS = {
+    messi:    { name: 'MESSI',     full: 'Lionel Messi',    number: 10, country: 'ARGENTINA', jersey: 0x6ca6e0, shorts: 0xf2f2f2, skin: 0xf2c79a, speed: 1.05, star: 1.0, combo: 1.0, blast: 5, shieldStart: false },
+    ronaldo:  { name: 'RONALDO',   full: 'Cristiano Ronaldo', number: 7, country: 'PORTUGAL', jersey: 0xc8102e, shorts: 0x0a3a1f, skin: 0xe8b487, speed: 1.0,  star: 1.0, combo: 1.0, blast: 6, shieldStart: false },
+    neymar:   { name: 'NEYMAR',    full: 'Neymar Jr',       number: 10, country: 'BRAZIL',    jersey: 0xfcd116, shorts: 0x1d3a8f, skin: 0xcf9b6b, speed: 1.0,  star: 1.0, combo: 1.6, blast: 5, shieldStart: false },
+    mbappe:   { name: 'MBAPPÉ',    full: 'Kylian Mbappé',   number: 10, country: 'FRANCE',    jersey: 0x0055a4, shorts: 0xffffff, skin: 0xb07a44, speed: 1.05, star: 1.0, combo: 1.0, blast: 5, shieldStart: false },
+    salah:    { name: 'M. SALAH',  full: 'Mohamed Salah',   number: 10, country: 'EGYPT',     jersey: 0xc8102e, shorts: 0xffffff, skin: 0x8a5a30, speed: 1.0,  star: 1.1, combo: 1.0, blast: 5, shieldStart: false },
+    kane:     { name: 'KANE',      full: 'Harry Kane',      number: 9,  country: 'ENGLAND',   jersey: 0xffffff, shorts: 0x1d3a8f, skin: 0xe8b487, speed: 1.0,  star: 1.0, combo: 1.0, blast: 5, shieldStart: false },
+    haaland:  { name: 'HAALAND',   full: 'Erling Haaland',  number: 9,  country: 'NORWAY',    jersey: 0xd61f26, shorts: 0x00205b, skin: 0xe8b487, speed: 1.0,  star: 1.0, combo: 1.0, blast: 6, shieldStart: false },
+    modric:   { name: 'MODRIC',    full: 'Luka Modrić',     number: 10, country: 'CROATIA',  jersey: 0xd11f2d, shorts: 0xffffff, skin: 0xe8b487, speed: 1.0,  star: 1.0, combo: 1.6, blast: 5, shieldStart: false }
   };
-  let selectedTeam = 'red';
+  let selectedPlayer = 'messi';
 
   const container = document.getElementById('game');
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -91,19 +94,26 @@
 
   let field = K.Field.create(scene, 'worldcup');
   applyLighting('worldcup');
-  let playerObj = K.Player.create(scene, TEAMS[selectedTeam]);
-  let player = playerObj.group;
-  let ball = player.userData.ball;
-
-  const playerGlow = new THREE.PointLight(0x66e0ff, 0, 7);
-  playerGlow.position.set(0, 1.2, 0);
-  player.add(playerGlow);
-  const playerAura = new THREE.Mesh(
-    new THREE.SphereGeometry(1.7, 16, 16),
-    new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  playerAura.position.y = 1.1;
-  player.add(playerAura);
+  let playerObj = null, player = null, ball = null;
+  let playerGlow = null, playerAura = null;
+  function buildPlayer() {
+    if (playerObj) scene.remove(player);
+    playerObj = K.Player.create(scene, PLAYERS[selectedPlayer]);
+    player = playerObj.group;
+    ball = player.userData.ball;
+    if (!playerGlow) {
+      playerGlow = new THREE.PointLight(0x66e0ff, 0, 7);
+      playerGlow.position.set(0, 1.2, 0);
+      playerAura = new THREE.Mesh(
+        new THREE.SphereGeometry(1.7, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      playerAura.position.y = 1.1;
+    }
+    player.add(playerGlow);
+    player.add(playerAura);
+  }
+  buildPlayer();
 
   const referee = K.Referee.create();
   referee.position.set(6.5, 0, 2);
@@ -118,17 +128,20 @@
   scene.add(obstacleGroup, starGroup, powerupGroup);
 
   // ---- state ----
-  let state = 'menu', paused = false;
+  let state = 'loading', paused = false;
   let speed = BASE_SPEED, distance = 0, starCount = 0, score = 0;
   let nextSpawnDist = 0, nextSpawnGap = 22, runPhase = 0;
   let grace = 0, iframes = 0;
   let currentWorld = 'worldcup';
   let best = 0;
   let introT = 0, introOpp = null, introSwitched = false;
-  let invisibleT = 0, ghostOn = false, nextFreeKickAt = 50;
+  let invisibleT = 0, ghostOn = false, nextFreeKickAt = 100;
+  const MAX_LIVES = 3;
+  let lives = 3;
+  let fovKick = 0;
   let freeKickReady = false, ballKicked = false, ballReturning = false, ballKickT = 0, ballReturnT = 0;
   const ballReturnFrom = new THREE.Vector3();
-  const LEG_POS = new THREE.Vector3(0, 0.32, 1.05);
+  const LEG_POS = new THREE.Vector3(0, 0.32, -1.05);
   const BALL_AHEAD = new THREE.Vector3(0, 1.8, -11);
   const camLook = new THREE.Vector3();
 
@@ -140,8 +153,6 @@
   let styleBonus = 0, closeCalls = 0, kickoffBlasts = 0, noRollDist = 0;
   // juice
   let shakeT = 0, hitStopT = 0, dyingT = 0;
-  // phases / milestones
-  let phase = -1, milestone100 = false, milestone300 = false, milestone600 = false;
   // tutorial
   let tutorialT = 0;
   let tutorialShown = false;
@@ -150,18 +161,16 @@
   const scoreEl = document.getElementById('score');
   const distEl = document.getElementById('distEl');
   const starEl = document.getElementById('starCount');
+  const livesHud = document.getElementById('livesHud');
   const comboEl = document.getElementById('comboEl');
   const comboMultEl = document.getElementById('comboMult');
   const powerHud = document.getElementById('powerHud');
   const powerIcon = document.getElementById('powerIcon');
   const powerLabel = document.getElementById('powerLabel');
   const powerFill = document.getElementById('powerFill');
-  const commentaryEl = document.getElementById('commentary');
-  const phaseBanner = document.getElementById('phaseBanner');
-  const styleBannerEl = document.getElementById('styleBanner');
-  const popupsEl = document.getElementById('popups');
-  const startScreen = document.getElementById('startScreen');
   const overScreen = document.getElementById('overScreen');
+  const loadingScreen = document.getElementById('loadingScreen');
+  const loadingFill = document.getElementById('loadingFill');
   const flash = document.getElementById('flash');
   const introBanner = document.getElementById('introBanner');
   const introL1 = document.getElementById('introL1');
@@ -179,24 +188,34 @@
   const tutorialEl = document.getElementById('tutorial');
 
   // ---- helpers ----
-  function popup(text, color) {
-    const d = document.createElement('div');
-    d.className = 'popup'; d.textContent = text; d.style.color = color || '#fff';
-    popupsEl.appendChild(d);
-    setTimeout(() => d.remove(), 920);
+  function fadeOut(el, done) {
+    if (!el) { if (done) done(); return; }
+    el.classList.add('fade-out');
+    let called = false;
+    const finish = () => {
+      if (called) return; called = true;
+      el.classList.add('hidden'); el.classList.remove('fade-out');
+      if (done) done();
+    };
+    el.addEventListener('transitionend', finish, { once: true });
+    setTimeout(finish, 650);
   }
-  function say(text) {
-    commentaryEl.textContent = text;
-    commentaryEl.classList.remove('hidden', 'show'); void commentaryEl.offsetWidth;
-    commentaryEl.classList.add('show');
-  }
-  function showBanner(el, text) {
-    el.textContent = text;
-    el.classList.remove('hidden', 'show'); void el.offsetWidth;
-    el.classList.add('show');
+  function showOverlay(el) { if (el) el.classList.remove('hidden', 'fade-out'); }
+  function runLoading(bgUrl, done, ms) {
+    loadingScreen.style.backgroundImage =
+      'linear-gradient(rgba(6,14,22,.5), rgba(6,14,22,.68)), url(' + bgUrl + ')';
+    showOverlay(loadingScreen);
+    loadingFill.style.width = '0%';
+    const t0 = performance.now();
+    const iv = setInterval(() => {
+      const p = Math.min(100, ((performance.now() - t0) / ms) * 100);
+      loadingFill.style.width = p.toFixed(1) + '%';
+    }, 30);
+    setTimeout(() => { clearInterval(iv); loadingFill.style.width = '100%'; fadeOut(loadingScreen, done); }, ms);
   }
 
   function resetGame() {
+    buildPlayer();
     obstacles.forEach(o => obstacleGroup.remove(o));
     stars.forEach(b => starGroup.remove(b));
     powerups.forEach(p => powerupGroup.remove(p));
@@ -209,13 +228,12 @@
     player.rotation.z = 0; player.scale.y = 1;
 
     speed = BASE_SPEED; distance = 0; starCount = 0; score = 0;
-    grace = 0; iframes = 0;
+    grace = 0; iframes = 0; lives = 3; updateLives();
     combo = 0; comboTimer = 0; bestCombo = 0;
-    speedBoostT = 0; magnetT = 0; shield = !!TEAMS[selectedTeam].shieldStart;
+    speedBoostT = 0; magnetT = 0; shield = !!PLAYERS[selectedPlayer].shieldStart;
     styleBonus = 0; closeCalls = 0; kickoffBlasts = 0; noRollDist = 0;
     shakeT = 0; hitStopT = 0; dyingT = 0;
-    phase = -1; milestone100 = milestone300 = milestone600 = false;
-    invisibleT = 0; ghostOn = false; nextFreeKickAt = 50;
+    invisibleT = 0; ghostOn = false; nextFreeKickAt = 100;
     freeKickReady = false; ballKicked = false; ballReturning = false;
     fkReady.classList.add('hidden');
     ball.position.copy(LEG_POS);
@@ -225,17 +243,11 @@
     nextSpawnGap = 24; nextSpawnDist = 0;
     tutorialT = tutorialShown ? 0 : 6;
 
-    // apply selected team kit
-    const kit = TEAMS[selectedTeam];
-    player.userData.mat.jersey.color.setHex(kit.jersey);
-    player.userData.mat.shorts.color.setHex(kit.shorts);
-    player.userData.mat.sock.color.setHex(kit.jersey);
-
     referee.userData.whistle = true;
     referee.position.set(3, 0, 2);
     if (!referee.parent) scene.add(referee);
     if (introOpp) { scene.remove(introOpp); introOpp = null; }
-    introOpp = K.Opponent.create(1, 'player');
+    introOpp = K.Opponent.create(1, 'player', 9);
     introOpp.position.set(0, 0, -7);
     scene.add(introOpp);
   }
@@ -247,9 +259,8 @@
     resetGame();
     introT = 0;
     state = 'intro'; paused = false; pauseScreen.classList.add('hidden');
-    startScreen.classList.add('hidden');
     overScreen.classList.add('hidden');
-    worldScreen.classList.add('hidden');
+    fadeOut(worldScreen);
     introBanner.classList.remove('hidden');
     introL1.textContent = 'REFEREE WHISTLES';
     introL2.textContent = 'KICK OFF!';
@@ -304,7 +315,10 @@
 
   function setPlayerGhost(on) {
     player.traverse(n => {
-      if (n.isMesh && n.material) { n.material.transparent = false; n.material.opacity = 1; n.material.depthWrite = true; }
+      if (n.isMesh && n.material) {
+        const mats = Array.isArray(n.material) ? n.material : [n.material];
+        mats.forEach(m => { m.transparent = false; m.opacity = 1; m.depthWrite = true; });
+      }
     });
     playerGlow.color.set(0x2a3bff);
     playerGlow.intensity = on ? 1.6 : 0;
@@ -313,7 +327,12 @@
     playerAura.material.opacity = on ? 0.34 : 0;
   }
   function fadeObj(obj, op) {
-    obj.traverse(n => { if (n.isMesh && n.material) { n.material.transparent = op < 1; n.material.opacity = op; } });
+    obj.traverse(n => {
+      if (n.isMesh && n.material) {
+        const mats = Array.isArray(n.material) ? n.material : [n.material];
+        mats.forEach(m => { m.transparent = op < 1; m.opacity = op; });
+      }
+    });
   }
   function flashScreen(a) {
     flash.style.transition = 'none'; flash.style.opacity = a;
@@ -323,27 +342,25 @@
   function awardFreeKick() { freeKickReady = true; fkReady.classList.remove('hidden'); }
   function shootFreeKick() {
     freeKickReady = false;
-    invisibleT = TEAMS[selectedTeam].blast; // KICKOFF BLAST duration (per-team)
-    obstacles.forEach(o => { o.userData.frozen = true; fadeObj(o, 0.28); });
+    invisibleT = PLAYERS[selectedPlayer].blast; // KICKOFF BLAST duration (per-team)
     kickoffBlasts++;
+    fovKick = 1; // smooth camera punch
     K.Audio.sfx.whistle();
     K.Audio.sfx.goal();
     particles.confetti(player.position.clone().add(new THREE.Vector3(0, 1.4, 0)));
-    flashScreen(0.5);
+    flashScreen(0.4);
     ballKicked = true; ballReturning = false; ballKickT = 0;
     fkReady.classList.add('hidden');
     fk1.textContent = 'KICKOFF BLAST!'; fk2.style.display = 'none';
-    freeKick.classList.remove('hidden');
-    setTimeout(() => freeKick.classList.add('hidden'), 1400);
+    freeKick.classList.remove('hidden'); freeKick.classList.add('fk-show');
+    setTimeout(() => { freeKick.classList.add('hidden'); freeKick.classList.remove('fk-show'); }, 1400);
     invisHud.classList.remove('hidden');
   }
 
   // ---- spawning ----
   function spawnChunk(z) {
-    const ph = phaseFor(distance);
-    const keeperChance = [0.18, 0.32, 0.40, 0.46][ph];
-    if (Math.random() < keeperChance) {
-      const o = K.Opponent.create(1, 'keeper');
+    if (Math.random() < KEEPER_CHANCE) {
+      const o = K.Opponent.create(1, 'keeper', 1);
       o.position.z = z; o.userData.z = z;
       obstacleGroup.add(o); obstacles.push(o);
       return;
@@ -353,17 +370,17 @@
     const blockedCount = Math.random() < 0.55 ? 1 : 2;
     for (let i = 0; i < blockedCount; i++) {
       const lane = order[i];
-      const o = K.Opponent.create(lane, 'player');
+      const o = K.Opponent.create(lane, 'player', 2 + ((Math.random() * 9) | 0));
       o.position.x = LANES[lane]; o.position.z = z; o.userData.z = z;
       obstacleGroup.add(o); obstacles.push(o);
     }
     const freeLane = order[blockedCount];
     const n = 3 + ((Math.random() * 4) | 0);
     let orbSpawned = false, orbIdx = -1, orbType = 'speed';
-    if (Math.random() < 0.08) {
+    if (Math.random() < 0.10) {
       orbSpawned = true; orbIdx = (Math.random() * n) | 0;
-      const types = ['speed', 'magnet', 'shield'];
-      orbType = types[(Math.random() * 3) | 0];
+      const types = ['speed', 'magnet', 'shield', 'life'];
+      orbType = types[(Math.random() * types.length) | 0];
     }
     for (let i = 0; i < n; i++) {
       const pz = z + i * 1.6;
@@ -409,6 +426,27 @@
   }
 
   window.addEventListener('keydown', e => {
+    if (state === 'help') {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showMainMenu(); }
+      return;
+    }
+    if (state === 'menu') {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showWorldScreen(); }
+      return;
+    }
+    if (state === 'world') {
+      if (e.key === ' ') { e.preventDefault(); startWithLoad(); }
+      else if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
+      return;
+    }
+    if (state === 'options' || state === 'customize') {
+      if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
+      return;
+    }
+    if (state === 'farewell') {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showMainMenu(); }
+      return;
+    }
     if (freeKickReady && e.key === ' ') { e.preventDefault(); shootFreeKick(); return; }
     switch (e.key) {
       case 'ArrowLeft': case 'a': case 'A': moveLane(-1); break;
@@ -417,7 +455,7 @@
       case 'ArrowDown': case 's': case 'S': doRoll(); break;
       case 'm': case 'M': K.Audio.toggle(); break;
       case 'p': case 'P': case 'Escape': togglePause(); break;
-      case 'r': case 'R': if (state !== 'menu') startGame(); break;
+      case 'r': case 'R': if (['playing', 'over', 'world', 'intro', 'dying'].indexOf(state) >= 0) startGame(); break;
     }
   });
 
@@ -430,28 +468,143 @@
     else { if (Math.abs(dy) > 24) { dy < 0 ? doJump() : doRoll(); } }
   }, { passive: true });
 
-  document.getElementById('startBtn').addEventListener('click', () => startGame());
   document.getElementById('restartBtn').addEventListener('click', () => startGame());
 
   const worldScreen = document.getElementById('worldScreen');
+  const helpScreen = document.getElementById('helpScreen');
+  const helpContinue = document.getElementById('helpContinue');
   const changeWorldBtn = document.getElementById('changeWorldBtn');
-  function showWorldScreen() {
-    state = 'menu'; paused = false;
-    K.Audio.stopMusic(); K.Audio.stopAmbient();
-    overScreen.classList.add('hidden');
-    worldScreen.classList.remove('hidden');
+  const mainMenu = document.getElementById('mainMenu');
+  const optionsScreen = document.getElementById('optionsScreen');
+  const customizeScreen = document.getElementById('customizeScreen');
+  const farewellScreen = document.getElementById('farewellScreen');
+
+  const ALL_OVERLAYS = [mainMenu, optionsScreen, customizeScreen, farewellScreen, worldScreen, helpScreen, overScreen, pauseScreen, loadingScreen];
+  function hideAllOverlays() { ALL_OVERLAYS.forEach(el => { if (el) el.classList.add('hidden'); }); }
+
+  function showMainMenu() {
+    hideAllOverlays();
+    showOverlay(mainMenu);
+    state = 'menu';
   }
+  function showHelp() {
+    hideAllOverlays();
+    showOverlay(helpScreen);
+    state = 'help';
+  }
+  function showWorldScreen() {
+    state = 'world'; paused = false;
+    K.Audio.stopMusic(); K.Audio.stopAmbient();
+    hideAllOverlays();
+    const p = PLAYERS[selectedPlayer];
+    const asEl = document.getElementById('playingAs');
+    if (asEl) asEl.textContent = 'PLAYING AS  ' + p.full + '  #' + p.number + '  ·  ' + p.country;
+    showOverlay(worldScreen);
+  }
+  function showOptions() {
+    hideAllOverlays();
+    showOverlay(optionsScreen);
+    state = 'options';
+  }
+
+  // ---- customize: 3D player preview ----
+  let previewRenderer = null, previewScene = null, previewCam = null, previewPlayer = null, previewPhase = 0;
+  function initPreview() {
+    if (previewRenderer) return;
+    const canvas = document.getElementById('previewCanvas');
+    previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    previewRenderer.setSize(260, 340, false);
+    previewScene = new THREE.Scene();
+    previewCam = new THREE.PerspectiveCamera(42, 260 / 340, 0.1, 100);
+    previewCam.position.set(0, 1.85, 5.2);
+    previewCam.lookAt(0, 1.35, 0);
+    previewScene.add(new THREE.HemisphereLight(0xffffff, 0x556070, 1.0));
+    const dl = new THREE.DirectionalLight(0xffffff, 1.25); dl.position.set(3, 6, 4); previewScene.add(dl);
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(2.3, 32),
+      new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 1 }));
+    disc.rotation.x = -Math.PI / 2; previewScene.add(disc);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(2.25, 2.4, 32),
+      new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.01; previewScene.add(ring);
+  }
+  function setPreview(id) {
+    initPreview();
+    if (previewPlayer) previewScene.remove(previewPlayer.group);
+    previewPlayer = K.Player.create(previewScene, PLAYERS[id]);
+    // show the kit front (chest) to the camera; ball isn't needed in the preview
+    previewPlayer.group.rotation.y = Math.PI;
+    if (previewPlayer.group.userData.ball) previewPlayer.group.userData.ball.visible = false;
+  }
+  function buildPlayerList() {
+    const list = document.getElementById('playerList');
+    if (!list || list.childElementCount) return;
+    Object.keys(PLAYERS).forEach(id => {
+      const p = PLAYERS[id];
+      const card = document.createElement('button');
+      card.className = 'player-card'; card.dataset.player = id;
+      card.innerHTML = '<span class="pc-num">#' + p.number + '</span>' +
+        '<span class="pc-name">' + p.full + '</span>' +
+        '<span class="pc-country">' + p.country + '</span>';
+      card.addEventListener('click', () => selectPlayer(id));
+      list.appendChild(card);
+    });
+  }
+  function selectPlayer(id) {
+    selectedPlayer = id;
+    document.querySelectorAll('.player-card').forEach(c => c.classList.toggle('selected', c.dataset.player === id));
+    const p = PLAYERS[id];
+    const n = document.getElementById('custName'); if (n) n.textContent = p.full;
+    const num = document.getElementById('custNum'); if (num) num.textContent = '#' + p.number;
+    const c = document.getElementById('custCountry'); if (c) c.textContent = p.country;
+    setPreview(id);
+  }
+  function showCustomize() {
+    hideAllOverlays();
+    showOverlay(customizeScreen);
+    state = 'customize';
+    buildPlayerList();
+    selectPlayer(selectedPlayer);
+  }
+  function showFarewell() {
+    hideAllOverlays();
+    showOverlay(farewellScreen);
+    state = 'farewell';
+  }
+  function showWorld() { showWorldScreen(); }
+
+  function startWithLoad() {
+    state = 'loading';
+    worldScreen.classList.add('hidden');
+    runLoading('assets/loading_bg_' + currentWorld + '.png', () => startGame(), 1100);
+  }
+
+  if (helpContinue) helpContinue.addEventListener('click', showMainMenu);
+  if (mainMenu) {
+    document.getElementById('startBtn').addEventListener('click', showWorldScreen);
+    document.getElementById('optionsBtn').addEventListener('click', showOptions);
+    document.getElementById('customizeBtn').addEventListener('click', showCustomize);
+    document.getElementById('exitBtn').addEventListener('click', showFarewell);
+    const howto = document.getElementById('howtoBtn');
+    if (howto) howto.addEventListener('click', showHelp);
+  }
+  if (optionsScreen) document.getElementById('optionsBack').addEventListener('click', showMainMenu);
+  if (customizeScreen) document.getElementById('custBack').addEventListener('click', showMainMenu);
+  if (farewellScreen) document.getElementById('farewellPlay').addEventListener('click', showMainMenu);
+
   document.querySelectorAll('.world-card').forEach(card => {
-    card.addEventListener('click', () => { worldScreen.classList.add('hidden'); startGame(card.dataset.world); });
-  });
-  document.querySelectorAll('.team-card').forEach(card => {
     card.addEventListener('click', () => {
-      document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('.world-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
-      selectedTeam = card.dataset.team;
+      currentWorld = card.dataset.world;
     });
   });
   if (changeWorldBtn) changeWorldBtn.addEventListener('click', showWorldScreen);
+
+  // first screen: loading -> main menu
+  helpScreen.classList.add('hidden');
+  worldScreen.classList.add('hidden');
+  runLoading('assets/lobby_bg_main.png', () => { showMainMenu(); }, 1300);
 
   // pause controls
   document.getElementById('resumeBtn').addEventListener('click', togglePause);
@@ -462,18 +615,50 @@
   const volSfx = document.getElementById('volSfx');
   if (volMusic) volMusic.addEventListener('input', () => { if (K.Audio.musicGainSet) K.Audio.musicGainSet(volMusic.value / 100); });
   if (volSfx) volSfx.addEventListener('input', () => { if (K.Audio.masterGainSet) K.Audio.masterGainSet(volSfx.value / 100); });
+  const optMusic = document.getElementById('optMusic');
+  const optSfx = document.getElementById('optSfx');
+  if (optMusic) optMusic.addEventListener('input', () => { if (K.Audio.musicGainSet) K.Audio.musicGainSet(optMusic.value / 100); });
+  if (optSfx) optSfx.addEventListener('input', () => { if (K.Audio.masterGainSet) K.Audio.masterGainSet(optSfx.value / 100); });
 
   // ---- collisions ----
+  function updateLives() {
+    let s = '';
+    for (let i = 0; i < MAX_LIVES; i++) s += (i < lives ? '♥' : '♡');
+    livesHud.textContent = s;
+  }
   function checkObstacle(o) {
     if (state !== 'playing') return;
     if (grace > 0 || iframes > 0) return;
-    if (invisibleT > 0) return;
+    if (invisibleT > 0) { smashObstacle(o); return; }
     if (o.userData.frozen) return;
     const u = player.userData, d = o.userData;
     const near = Math.abs(o.position.z - PLAYER_Z) < d.halfDepth + 0.4;
     if (!near) return;
-    if (d.type === 'keeper') { if (u.y < d.clearHeight) { if (shield) absorbHit(); else gameOver(); } }
-    else { if (Math.abs(u.x - o.position.x) < 0.85) { if (shield) absorbHit(); else gameOver(); } }
+    if (d.type === 'keeper') { if (u.y < d.clearHeight) { if (shield) absorbHit(); else hitPlayer(); } }
+    else { if (Math.abs(u.x - o.position.x) < 0.85) { if (shield) absorbHit(); else hitPlayer(); } }
+  }
+  function smashObstacle(o) {
+    const idx = obstacles.indexOf(o);
+    if (idx < 0) return;
+    obstacles.splice(idx, 1);
+    obstacleGroup.remove(o);
+    particles.smoke(o.position.clone().add(new THREE.Vector3(0, 1, 0)));
+  }
+  function hitPlayer() {
+    if (shield) { absorbHit(); return; }
+    lives--;
+    updateLives();
+    breakCombo();
+    if (lives <= 0) { gameOver(); return; }
+    iframes = 2.0;
+    shakeT = 0.3; flashScreen(0.5);
+    K.Audio.sfx.crash();
+    // give breathing room: clear defenders right around the player
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      if (obstacles[i].position.z > -2 && obstacles[i].position.z < 4) {
+        obstacleGroup.remove(obstacles[i]); obstacles.splice(i, 1);
+      }
+    }
   }
   function absorbHit() {
     shield = false; iframes = 1.2;
@@ -488,9 +673,9 @@
       if (top > cy - 0.7 && u.y < cy + 0.7) {
         starGroup.remove(b); stars.splice(stars.indexOf(b), 1);
         starCount++;
-        combo++; comboTimer = COMBO_TIMEOUT * TEAMS[selectedTeam].combo;
+        combo++; comboTimer = COMBO_TIMEOUT * PLAYERS[selectedPlayer].combo;
         const mult = comboMult(combo);
-        const gain = Math.round(10 * mult * TEAMS[selectedTeam].star);
+        const gain = Math.round(10 * mult * PLAYERS[selectedPlayer].star);
         score += gain;
         if (combo > bestCombo) bestCombo = combo;
         particles.starBurst(b.position.clone());
@@ -502,7 +687,7 @@
           comboEl.classList.add('bump'); setTimeout(() => comboEl.classList.remove('bump'), 130);
         }
         if (u.jumping && !u.rolling) { score += 25; styleBonus += 25; }
-        if (starCount >= nextFreeKickAt) { awardFreeKick(); nextFreeKickAt += 50; }
+        if (starCount >= nextFreeKickAt) { awardFreeKick(); nextFreeKickAt += 100; }
       }
     }
   }
@@ -517,6 +702,7 @@
     if (type === 'speed') speedBoostT = 4;
     else if (type === 'magnet') magnetT = 5;
     else if (type === 'shield') shield = true;
+    else if (type === 'life') { if (lives < MAX_LIVES) { lives++; updateLives(); particles.starBurst(player.position.clone().add(new THREE.Vector3(0, 1.4, 0))); } }
     powerHud.classList.remove('hidden');
   }
 
@@ -530,25 +716,11 @@
     K.Audio.sfx.style();
   }
 
-  // ---- difficulty phases ----
-  function phaseFor(d) { return d < 100 ? 0 : d < 300 ? 1 : d < 600 ? 2 : 3; }
-  const PHASE_NAMES = ['WARM-UP', 'FIRST HALF', 'SECOND HALF', 'EXTRA TIME'];
-  function updatePhase() {
-    const ph = phaseFor(distance);
-    if (ph !== phase) {
-      phase = ph;
-      if (ph > 0) showBanner(phaseBanner, PHASE_NAMES[ph] + '!');
-    }
-    if (!milestone100 && distance >= 100) milestone100 = true;
-    if (!milestone300 && distance >= 300) milestone300 = true;
-    if (!milestone600 && distance >= 600) milestone600 = true;
-  }
-
   // ---- update ----
   function update(dt) {
     const u = player.userData;
-    const team = TEAMS[selectedTeam];
-    const spd = (BASE_SPEED + Math.min(22, distance / 90)) * team.speed * (speedBoostT > 0 ? 1.4 : 1);
+    const team = PLAYERS[selectedPlayer];
+    const spd = (BASE_SPEED + Math.min(22, distance / 90)) * team.speed * (speedBoostT > 0 ? 1.4 : 1) * (invisibleT > 0 ? 1.3 : 1);
     speed = spd; distance += speed * dt;
     u.x += (LANES[u.lane] - u.x) * Math.min(1, dt * 12);
     player.position.x = u.x;
@@ -588,17 +760,15 @@
     if (ghostOn) {
       invisibleT -= dt;
       invisNum.textContent = Math.max(1, Math.ceil(invisibleT));
-      invisFill.style.width = (Math.max(0, invisibleT) / 5 * 100) + '%';
+      invisFill.style.width = (Math.max(0, invisibleT) / PLAYERS[selectedPlayer].blast * 100) + '%';
       if (invisibleT <= 0) {
         ghostOn = false; invisibleT = 0;
         invisHud.classList.add('hidden');
-        nextSpawnDist = distance + 25;
         ballReturning = true; ballReturnT = 0; ballReturnFrom.copy(ball.position);
-        obstacles.forEach(o => { o.userData.frozen = false; fadeObj(o, 1); });
       }
     }
     if (ghostOn !== wasGhost) setPlayerGhost(ghostOn);
-    fkFill.style.width = (freeKickReady ? 100 : (starCount % 50) / 50 * 100) + '%';
+    fkFill.style.width = (freeKickReady ? 100 : (starCount % 100) / 100 * 100) + '%';
 
     if (ballKicked) {
       if (ballReturning) {
@@ -613,7 +783,7 @@
 
     // style: speed demon (100m without rolling)
     if (u.rolling) noRollDist = 0;
-    else { noRollDist += speed * dt; if (noRollDist >= 100) { noRollDist -= 100; styleBonus += 200; score += 200; showBanner(styleBannerEl, 'SPEED DEMON +200'); K.Audio.sfx.style(); } }
+    else { noRollDist += speed * dt; if (noRollDist >= 100) { noRollDist -= 100; styleBonus += 200; score += 200; K.Audio.sfx.style(); } }
 
     // tutorial overlay — shows on first run, dismisses on any input or after a few seconds
     if (tutorialT > 0) {
@@ -624,8 +794,6 @@
       tutorialEl.classList.add('hidden');
     }
 
-    updatePhase();
-
     const moveAmt = speed * dt;
     field.scroll(moveAmt);
     field.update(distance, dt);
@@ -633,7 +801,6 @@
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
       o.position.z += moveAmt; o.userData.z = o.position.z;
-      if (distance > 300 && o.userData.type === 'player' && !o.userData.frozen) { o.position.z += moveAmt * 0.4; o.userData.z = o.position.z; }
       if (!o.userData.frozen) o.userData.animate && o.userData.animate(dt);
       // style: reward a clean dodge / limbo as the rival passes
       if (!o.userData.scored && o.position.z > PLAYER_Z + 0.5) {
@@ -664,9 +831,9 @@
       }
     }
 
-    if (!ghostOn && distance >= nextSpawnDist) {
+    if (distance >= nextSpawnDist) {
       spawnChunk(SPAWN_Z);
-      nextSpawnDist += 24 + Math.random() * (phase >= 2 ? 10 : 16);
+      nextSpawnDist += 24 + Math.random() * 16;
     }
   }
 
@@ -734,7 +901,20 @@
       camera.position.copy(CAM_GAME_POS);
     }
 
+    // smooth KICKOFF BLAST camera punch (eases back to base fov)
+    fovKick += (0 - fovKick) * Math.min(1, dt * 3.5);
+    camera.fov = 60 + fovKick * 9;
+    camera.updateProjectionMatrix();
+
     composer.render();
+
+    if (state === 'customize' && previewPlayer && previewRenderer) {
+      previewPhase += dt * 7;
+      previewPlayer.animate(previewPhase, false);
+      previewPlayer.group.rotation.y += dt * 0.5;
+      previewRenderer.render(previewScene, previewCam);
+    }
+
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);

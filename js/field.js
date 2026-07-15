@@ -146,9 +146,10 @@
     const SHOW_AFTER = 25; // metres before the crowd starts showing support messages
     const CHEER_MSGS = ['KEEP GOING', 'VAMOS', 'ANKARA MESSI', 'OLE!', 'FORZA', 'GOAL!',
       'COME ON', 'RUN!', 'NICE!', 'CAMPEONES', 'YOU GOT THIS', 'LEGEND'];
-    // low-poly faceted crowd bodies: tapered torso + icosphere head, flat-shaded
-    const bodyGeo = new THREE.CylinderGeometry(0.09, 0.16, 0.8, 5);
-    const headGeo = new THREE.IcosahedronGeometry(0.19, 0);
+    // low-poly faceted crowd bodies: shoulder-wide torso + shoulders/arms + head, flat-shaded
+    const bodyGeo = new THREE.CylinderGeometry(0.17, 0.11, 0.66, 6);
+    const shoulderGeo = new THREE.BoxGeometry(0.5, 0.22, 0.26);
+    const headGeo = new THREE.IcosahedronGeometry(0.2, 0);
     const bodyMat = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true });
     const headMat = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true });
     const crowdCols = 8, crowdRows = 4;
@@ -159,10 +160,11 @@
     const flagCols = [0xd94f45, 0x3a7ca5, 0x2f9e8f, 0xe0a63c, 0x9c4a86, 0xe7e2d6];
     const pick = arr => arr[(Math.random() * arr.length) | 0];
 
-    // base stickman crowd (instanced): body low, head on top
+    // base stickman crowd (instanced): shoulder-wide torso + shoulders/arms + head
     function addCrowd(parent, innerX, tierX, baseY, topY, length, z0) {
       const n = crowdRows * crowdCols;
       const body = new THREE.InstancedMesh(bodyGeo, bodyMat, n);
+      const shoulder = new THREE.InstancedMesh(shoulderGeo, bodyMat, n);
       const head = new THREE.InstancedMesh(headGeo, headMat, n);
       let i = 0;
       for (let r = 0; r < crowdRows; r++) {
@@ -170,45 +172,50 @@
         const x = innerX + tierX * r;
         for (let c = 0; c < crowdCols; c++) {
           const z = z0 + (crowdCols === 1 ? 0 : (c / (crowdCols - 1) - 0.5) * length);
+          const kit = new THREE.Color(kitCols[(Math.random() * kitCols.length) | 0]);
           dummy.position.set(x + (Math.random() - 0.5) * 0.15, y + 0.4, z);
           dummy.rotation.set(0, (Math.random() - 0.5) * 0.5, 0);
           dummy.scale.setScalar(0.9 + Math.random() * 0.25);
           dummy.updateMatrix();
-          body.setMatrixAt(i, dummy.matrix);
-          body.setColorAt(i, new THREE.Color(kitCols[(Math.random() * kitCols.length) | 0]));
-          dummy.position.y = y + 1.0; dummy.updateMatrix();
-          head.setMatrixAt(i, dummy.matrix);
-          head.setColorAt(i, new THREE.Color(pick(skinCols)));
+          body.setMatrixAt(i, dummy.matrix); body.setColorAt(i, kit);
+          dummy.position.y = y + 0.62; dummy.updateMatrix();
+          shoulder.setMatrixAt(i, dummy.matrix); shoulder.setColorAt(i, kit);
+          dummy.position.y = y + 0.95; dummy.updateMatrix();
+          head.setMatrixAt(i, dummy.matrix); head.setColorAt(i, new THREE.Color(pick(skinCols)));
           i++;
         }
       }
-      body.instanceMatrix.needsUpdate = true; head.instanceMatrix.needsUpdate = true;
+      body.instanceMatrix.needsUpdate = true; shoulder.instanceMatrix.needsUpdate = true; head.instanceMatrix.needsUpdate = true;
       if (body.instanceColor) body.instanceColor.needsUpdate = true;
+      if (shoulder.instanceColor) shoulder.instanceColor.needsUpdate = true;
       if (head.instanceColor) head.instanceColor.needsUpdate = true;
-      parent.add(body, head);
+      parent.add(body, shoulder, head);
     }
 
-    // one row of stickmen along z, seated at a fixed x / ground height
+    // one row of spectators along z, seated at a fixed x / ground height
     function addCrowdRow(parent, x, baseY, length, z0) {
       const n = crowdCols;
       const body = new THREE.InstancedMesh(bodyGeo, bodyMat, n);
+      const shoulder = new THREE.InstancedMesh(shoulderGeo, bodyMat, n);
       const head = new THREE.InstancedMesh(headGeo, headMat, n);
       for (let c = 0; c < crowdCols; c++) {
         const z = z0 + (c / (crowdCols - 1) - 0.5) * length;
+        const kit = new THREE.Color(kitCols[(Math.random() * kitCols.length) | 0]);
         dummy.position.set(x + (Math.random() - 0.5) * 0.15, baseY + 0.4, z);
         dummy.rotation.set(0, (Math.random() - 0.5) * 0.5, 0);
         dummy.scale.setScalar(0.9 + Math.random() * 0.25);
         dummy.updateMatrix();
-        body.setMatrixAt(c, dummy.matrix);
-        body.setColorAt(c, new THREE.Color(kitCols[(Math.random() * kitCols.length) | 0]));
-        dummy.position.y = baseY + 1.0; dummy.updateMatrix();
-        head.setMatrixAt(c, dummy.matrix);
-        head.setColorAt(c, new THREE.Color(pick(skinCols)));
+        body.setMatrixAt(c, dummy.matrix); body.setColorAt(c, kit);
+        dummy.position.y = baseY + 0.62; dummy.updateMatrix();
+        shoulder.setMatrixAt(c, dummy.matrix); shoulder.setColorAt(c, kit);
+        dummy.position.y = baseY + 0.95; dummy.updateMatrix();
+        head.setMatrixAt(c, dummy.matrix); head.setColorAt(c, new THREE.Color(pick(skinCols)));
       }
-      body.instanceMatrix.needsUpdate = true; head.instanceMatrix.needsUpdate = true;
+      body.instanceMatrix.needsUpdate = true; shoulder.instanceMatrix.needsUpdate = true; head.instanceMatrix.needsUpdate = true;
       if (body.instanceColor) body.instanceColor.needsUpdate = true;
+      if (shoulder.instanceColor) shoulder.instanceColor.needsUpdate = true;
       if (head.instanceColor) head.instanceColor.needsUpdate = true;
-      parent.add(body, head);
+      parent.add(body, shoulder, head);
     }
 
     // a stickman holding a waving flag
@@ -406,18 +413,46 @@
       const umbCols = [0xd94f45, 0x3a7ca5, 0xe0a63c];
       function palm() {
         const g = new THREE.Group();
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.36, 5, 5),
-          new THREE.MeshStandardMaterial({ color: 0x9c6b4a, roughness: 1, flatShading: true }));
-        trunk.position.y = 2.5; trunk.castShadow = true;
-        g.add(trunk);
-        const leafMat = new THREE.MeshStandardMaterial({ color: 0x3a9d55, roughness: 1, flatShading: true });
-        for (let i = 0; i < 6; i++) {
-          const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.5, 3, 4), leafMat);
-          leaf.position.y = 5; leaf.rotation.z = Math.PI / 2.4;
-          leaf.rotation.y = i * Math.PI / 3;
-          leaf.position.x = Math.cos(i * Math.PI / 3) * 1.3;
-          leaf.position.z = Math.sin(i * Math.PI / 3) * 1.3;
-          g.add(leaf);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8a5a3b, roughness: 1, flatShading: true });
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x2f8f43, roughness: 1, flatShading: true });
+        const cocoMat = new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 1, flatShading: true });
+
+        // gently curved trunk built from a few stacked, offset segments
+        const SEG = 5, SH = 1.0;
+        let bx = 0, by = 0;
+        const dir = (Math.random() < 0.5 ? -1 : 1) * (0.06 + Math.random() * 0.06);
+        for (let i = 0; i < SEG; i++) {
+          const r0 = 0.24 - i * 0.02, r1 = 0.20 - i * 0.02;
+          const seg = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, SH, 6), trunkMat);
+          const lean = dir * (i + 1);
+          seg.position.set(bx + lean * 0.35, by + SH / 2, 0);
+          seg.rotation.z = -lean * 0.18;
+          seg.castShadow = true;
+          g.add(seg);
+          by += SH * Math.cos(lean * 0.18);
+          bx += lean * 0.35;
+        }
+        const topX = bx, topY = by;
+
+        // coconuts clustered under the crown
+        for (let i = 0; i < 3; i++) {
+          const a = i * 2.1;
+          const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 0), cocoMat);
+          c.position.set(topX + Math.cos(a) * 0.28, topY - 0.25, Math.sin(a) * 0.28);
+          g.add(c);
+        }
+
+        // flat, drooping fronds splaying out from the crown
+        const FR = 9;
+        for (let i = 0; i < FR; i++) {
+          const blade = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.05, 2.8), leafMat);
+          blade.geometry.translate(0, 0, 1.4);
+          const a = i * (Math.PI * 2 / FR) + Math.random() * 0.2;
+          blade.position.set(topX, topY, 0);
+          blade.rotation.y = a;
+          blade.rotation.x = -0.5 - Math.random() * 0.3;
+          blade.castShadow = true;
+          g.add(blade);
         }
         return g;
       }

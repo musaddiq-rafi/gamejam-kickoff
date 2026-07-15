@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Kickoff Rush — Football Endless Runner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -16,6 +19,7 @@
     <div class="dist" id="distEl">0 m</div>
   </div>
   <div class="right">
+    <div class="lives" id="livesHud">♥♥♥</div>
     <div class="stars"><span class="star-icon"></span><span id="starCount">0</span></div>
     <div class="combo hidden" id="comboEl"><span id="comboMult">x2</span> <span class="combo-n">COMBO</span></div>
     <div class="powerup hidden" id="powerHud">
@@ -26,12 +30,16 @@
   </div>
 </div>
 
-<div class="commentary hidden" id="commentary"></div>
-<div class="banner hidden" id="phaseBanner"></div>
-<div class="style-banner hidden" id="styleBanner"></div>
 <div class="popups" id="popups"></div>
 
 <div class="flash" id="flash"></div>
+
+<div class="overlay" id="loadingScreen">
+  <div class="loading-logo">⚽ KICKOFF RUSH</div>
+  <div class="loader-ring"></div>
+  <div class="loading-text">LOADING…</div>
+  <div class="loading-track"><div class="loading-fill" id="loadingFill"></div></div>
+</div>
 
 <div class="tutorial hidden" id="tutorial">
   <div class="tut-start">Press SPACE / any key to play</div>
@@ -76,11 +84,33 @@
   <div class="fk-charge-bar"><div class="fk-charge-fill" id="fkFill"></div></div>
 </div>
 
-<div class="overlay" id="worldScreen">
+  <div class="overlay" id="helpScreen">
+    <div class="title">KICKOFF RUSH</div>
+    <div class="subtitle">Dribble the ball as far as you can. Switch lanes to dodge rival players, jump the goalkeeper's save, and grab stars to charge your KICKOFF BLAST.</div>
+    <img class="help-figure" src="assets/pitch.svg" alt="Side view of the pitch" />
+    <div class="help-cols">
+    <div class="help-col">
+      <div class="help-h">CONTROLS</div>
+      <div class="help-row"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lane</div>
+      <div class="help-row"><kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump</div>
+      <div class="help-row"><kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide</div>
+    </div>
+    <div class="help-col">
+      <div class="help-h">HOW TO SCORE</div>
+      <div class="help-row">⭐ Collect stars to charge your blast</div>
+      <div class="help-row">⚽ Blast ready? <kbd>Space</kbd> shoots you free</div>
+      <div class="help-row"><kbd>P</kbd> / <kbd>Esc</kbd> pause &nbsp;•&nbsp; <kbd>M</kbd> mute</div>
+    </div>
+  </div>
+  <button class="btn" id="helpContinue">CONTINUE</button>
+  <div class="keys">Press SPACE or click CONTINUE</div>
+</div>
+
+<div class="overlay hidden" id="worldScreen">
   <div class="title">KICKOFF RUSH</div>
   <div class="subtitle">Pick your arena. Dodge rival players, jump the goalkeeper's save, and collect stars. How far can you dribble?</div>
   <div class="world-cards">
-    <div class="world-card" data-world="worldcup">
+    <div class="world-card selected" data-world="worldcup">
       <div class="wc-emoji">🏟️</div>
       <div class="wc-name">WORLD CUP</div>
       <div class="wc-desc">A roaring open stadium — cheering crowds wave placards under the floodlights.</div>
@@ -96,30 +126,12 @@
       <div class="wc-desc">A enclosed arena under the roof — close stands, bright spotlights and a scoreboard.</div>
     </div>
   </div>
-  <div class="team-select-label">CHOOSE YOUR TEAM</div>
-  <div class="team-cards">
-    <div class="team-card selected" data-team="red"><span class="tc-swatch" style="background:#d94f45"></span>Red Devils<span class="tc-perk">+5% speed</span></div>
-    <div class="team-card" data-team="blue"><span class="tc-swatch" style="background:#2d4a6b"></span>Blue Lions<span class="tc-perk">Shield start</span></div>
-    <div class="team-card" data-team="gold"><span class="tc-swatch" style="background:#e0a63c"></span>Golden Eagles<span class="tc-perk">Stars +10%</span></div>
-    <div class="team-card" data-team="green"><span class="tc-swatch" style="background:#2f9e8f"></span>Green Vipers<span class="tc-perk">Combo holds</span></div>
-    <div class="team-card" data-team="purple"><span class="tc-swatch" style="background:#9c4a86"></span>Purple Storm<span class="tc-perk">Blast 6s</span></div>
-  </div>
+  <div class="playing-as" id="playingAs">PLAYING AS</div>
+  <div class="kickoff-prompt">PRESS SPACE TO KICK OFF</div>
   <div class="keys">
     <kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lanes<br/>
     <kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump &nbsp;•&nbsp; <kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide<br/>
     On touch: swipe to move, swipe up to jump, swipe down to roll &nbsp;•&nbsp; <kbd>M</kbd> mute &nbsp;•&nbsp; <kbd>R</kbd> restart
-  </div>
-</div>
-
-<div class="overlay hidden" id="startScreen">
-  <div class="title">KICKOFF RUSH</div>
-  <div class="subtitle">You've got the ball and the whole pitch is yours — until the defenders show up. Dodge rival players and jump the goalkeeper's save. Collect stars as you go. How far can you dribble?</div>
-  <button class="btn" id="startBtn">KICK OFF</button>
-  <div class="keys">
-    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lanes<br/>
-    <kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump &nbsp;•&nbsp; <kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide<br/>
-    On touch: swipe to move, swipe up to jump, swipe down to roll<br/>
-    <kbd>M</kbd> — mute &nbsp;•&nbsp; <kbd>R</kbd> — restart
   </div>
 </div>
 
@@ -140,6 +152,59 @@
   <ol class="leaderboard" id="leaderboard"></ol>
   <button class="btn" id="restartBtn" style="margin-top:14px;">PLAY AGAIN</button>
   <button class="btn btn-ghost" id="changeWorldBtn" style="margin-top:10px;">CHANGE WORLD</button>
+</div>
+
+<div class="overlay hidden" id="mainMenu">
+  <div class="mm-logo">⚽ KICKOFF RUSH</div>
+  <div class="mm-tag">ENDLESS FOOTBALL RUNNER</div>
+  <div class="mm-buttons">
+    <button class="btn mm-btn" id="startBtn">START GAME</button>
+    <button class="btn btn-ghost mm-btn" id="optionsBtn">OPTIONS</button>
+    <button class="btn btn-ghost mm-btn" id="customizeBtn">CUSTOMIZE</button>
+    <button class="btn btn-ghost mm-btn" id="exitBtn">EXIT</button>
+  </div>
+  <button class="mm-howto" id="howtoBtn">HOW TO PLAY</button>
+</div>
+
+<div class="overlay hidden" id="optionsScreen">
+  <div class="title">OPTIONS</div>
+  <div class="subtitle">Tune your experience.</div>
+  <div class="opt-rows">
+    <div class="pause-row"><label>Music</label><input type="range" id="optMusic" min="0" max="100" value="50"></div>
+    <div class="pause-row"><label>SFX</label><input type="range" id="optSfx" min="0" max="100" value="60"></div>
+  </div>
+  <div class="opt-help">
+    <div class="help-h">CONTROLS</div>
+    <div class="help-row"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lane</div>
+    <div class="help-row"><kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump</div>
+    <div class="help-row"><kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide</div>
+    <div class="help-row"><kbd>P</kbd> / <kbd>Esc</kbd> pause &nbsp;•&nbsp; <kbd>M</kbd> mute</div>
+  </div>
+  <button class="btn" id="optionsBack">BACK</button>
+</div>
+
+<div class="overlay hidden" id="customizeScreen">
+  <div class="title">CUSTOMIZE</div>
+  <div class="subtitle">Choose your player — their kit, number and name appear on the pitch.</div>
+  <div class="cust-body">
+    <div class="cust-preview">
+      <canvas id="previewCanvas" width="260" height="340"></canvas>
+      <div class="cust-info">
+        <div class="cust-name" id="custName">L. MESSI</div>
+        <div class="cust-num" id="custNum">#10</div>
+        <div class="cust-country" id="custCountry">ARGENTINA</div>
+      </div>
+    </div>
+    <div class="cust-list" id="playerList"></div>
+  </div>
+  <button class="btn" id="custBack">BACK</button>
+</div>
+
+<div class="overlay hidden" id="farewellScreen">
+  <div class="mm-logo">⚽ KICKOFF RUSH</div>
+  <div class="mm-tag">THANKS FOR PLAYING!</div>
+  <div class="subtitle">Hope you enjoyed the rush. Come back and beat your best.</div>
+  <button class="btn" id="farewellPlay">PLAY AGAIN</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
