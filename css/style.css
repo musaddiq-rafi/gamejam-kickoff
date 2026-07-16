@@ -204,6 +204,7 @@ canvas { display: block; }
   transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
 }
 .world-card:hover { transform: translateY(-4px) scale(1.03); border-color: #d6ff8a; background: rgba(255,255,255,.18); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.world-card.selected { transform: translateY(-4px) scale(1.03); border-color: #ffd54f; background: rgba(255,213,79,.15); box-shadow: 0 0 20px rgba(255,213,79,.4), 0 10px 30px rgba(0,0,0,.35); }
 .wc-emoji { font-size: 46px; line-height: 1; margin-bottom: 10px; }
 .wc-name { font-size: 20px; font-weight: 800; letter-spacing: .5px; margin-bottom: 8px; }
 .wc-desc { font-size: 13px; opacity: .85; line-height: 1.5; }

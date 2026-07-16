@@ -63,13 +63,7 @@
       new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, flatShading: true }));
     sweatband.position.y = 2.4; sweatband.castShadow = true;
 
-    // simple drop shadow on the ground
-    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false });
-    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), shadowMat);
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = 0.02; // slightly above ground
-
-    player.add(torso, head, hair, sweatband, armLPivot, armRPivot, legLPivot, legRPivot, shadow);
+    player.add(torso, head, hair, sweatband, armLPivot, armRPivot, legLPivot, legRPivot);
 
     // dribbled ball in front of the player's feet (forward = -z, the running direction)
     const ballTex = K.makeSoccerTexture();

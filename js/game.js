@@ -148,7 +148,7 @@
   // combo / score
   let combo = 0, comboTimer = 0, bestCombo = 0;
   // power-ups
-  let speedBoostT = 0, magnetT = 0, shield = false;
+  let speedBoostT = 0, magnetT = 0, shieldT = 0;
   // style
   let styleBonus = 0, closeCalls = 0, kickoffBlasts = 0, noRollDist = 0;
   // juice
@@ -230,7 +230,7 @@
     speed = BASE_SPEED; distance = 0; starCount = 0; score = 0;
     grace = 0; iframes = 0; lives = 3; updateLives();
     combo = 0; comboTimer = 0; bestCombo = 0;
-    speedBoostT = 0; magnetT = 0; shield = !!PLAYERS[selectedPlayer].shieldStart;
+    speedBoostT = 0; magnetT = 0; shieldT = PLAYERS[selectedPlayer].shieldStart ? 6 : 0;
     styleBonus = 0; closeCalls = 0; kickoffBlasts = 0; noRollDist = 0;
     shakeT = 0; hitStopT = 0; dyingT = 0;
     invisibleT = 0; ghostOn = false; nextFreeKickAt = 100;
@@ -636,8 +636,8 @@
     const u = player.userData, d = o.userData;
     const near = Math.abs(o.position.z - PLAYER_Z) < d.halfDepth + 0.4;
     if (!near) return;
-    if (d.type === 'keeper') { if (u.y < d.clearHeight) { if (shield) absorbHit(); else hitPlayer(); } }
-    else { if (Math.abs(u.x - o.position.x) < 0.85) { if (shield) absorbHit(); else hitPlayer(); } }
+    if (d.type === 'keeper') { if (u.y < d.clearHeight) { if (shieldT > 0) absorbHit(); else hitPlayer(); } }
+    else { if (Math.abs(u.x - o.position.x) < 0.85) { if (shieldT > 0) absorbHit(); else hitPlayer(); } }
   }
   function smashObstacle(o) {
     const idx = obstacles.indexOf(o);
@@ -647,7 +647,7 @@
     particles.smoke(o.position.clone().add(new THREE.Vector3(0, 1, 0)));
   }
   function hitPlayer() {
-    if (shield) { absorbHit(); return; }
+    if (shieldT > 0) { absorbHit(); return; }
     lives--;
     updateLives();
     breakCombo();
@@ -663,7 +663,7 @@
     }
   }
   function absorbHit() {
-    shield = false; iframes = 1.2;
+    shieldT = 0; iframes = 1.2;
     particles.shatter(player.position.clone().add(new THREE.Vector3(0, 1, 0)), 0x4fd17a);
     K.Audio.sfx.shieldBreak();
   }
@@ -703,7 +703,7 @@
     K.Audio.sfx.power();
     if (type === 'speed') speedBoostT = 4;
     else if (type === 'magnet') magnetT = 5;
-    else if (type === 'shield') shield = true;
+    else if (type === 'shield') shieldT = 6;
     else if (type === 'life') { if (lives < MAX_LIVES) { lives++; updateLives(); particles.starBurst(player.position.clone().add(new THREE.Vector3(0, 1.4, 0))); } }
     powerHud.classList.remove('hidden');
   }
@@ -749,15 +749,16 @@
     // power-up timers + HUD
     if (speedBoostT > 0) speedBoostT -= dt;
     if (magnetT > 0) magnetT -= dt;
+    if (shieldT > 0) shieldT -= dt;
     // GOLDEN BOOT: turn the player's boots gold while the magnet is active
     const bm = player.userData.bootMat;
     if (bm) {
       if (magnetT > 0) { bm.color.setHex(0xffd54f); bm.emissive.setHex(0xffb300); bm.emissiveIntensity = 0.5; }
       else { bm.color.setHex(0x20242b); bm.emissive.setHex(0x000000); bm.emissiveIntensity = 0; }
     }
-    if (shield || speedBoostT > 0 || magnetT > 0) {
+    if (shieldT > 0 || speedBoostT > 0 || magnetT > 0) {
       powerHud.classList.remove('hidden');
-      if (shield) { powerIcon.textContent = '🛡️'; powerLabel.textContent = 'SHIELD'; powerFill.style.width = '100%'; }
+      if (shieldT > 0) { powerIcon.textContent = '🛡️'; powerLabel.textContent = 'SHIELD'; powerFill.style.width = (shieldT / 6 * 100) + '%'; }
       else if (speedBoostT > 0) { powerIcon.textContent = '⚡'; powerLabel.textContent = 'SPEED'; powerFill.style.width = (speedBoostT / 4 * 100) + '%'; }
       else { powerIcon.textContent = '👢'; powerLabel.textContent = 'GOLDEN BOOT'; powerFill.style.width = (magnetT / 5 * 100) + '%'; }
     } else powerHud.classList.add('hidden');
