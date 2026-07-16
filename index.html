@@ -19,6 +19,7 @@
     <div class="dist" id="distEl">0 m</div>
   </div>
   <div class="right">
+    <button class="pause-btn" id="pauseBtn" title="Pause (ESC)">ESC</button>
     <div class="lives" id="livesHud">♥♥♥</div>
     <div class="stars"><span class="star-icon"></span><span id="starCount">0</span></div>
     <div class="combo hidden" id="comboEl"><span id="comboMult">x2</span> <span class="combo-n">COMBO</span></div>
@@ -41,14 +42,7 @@
   <div class="loading-track"><div class="loading-fill" id="loadingFill"></div></div>
 </div>
 
-<div class="tutorial hidden" id="tutorial">
-  <div class="tut-start">Press SPACE / any key to play</div>
-  <div class="tut-row"><span class="key">← →</span> Switch lanes</div>
-  <div class="tut-row"><span class="key">↑ / SPACE</span> Jump</div>
-  <div class="tut-row"><span class="key">↓ / S</span> Roll / slide</div>
-  <div class="tut-row"><span class="key">P / ESC</span> Pause</div>
-  <div class="tut-row tut-goal">Grab ⭐ to charge your KICKOFF BLAST — press SPACE to unleash it!</div>
-</div>
+
 
 <div class="overlay hidden" id="pauseScreen">
   <div class="title" style="font-size:40px;">PAUSED</div>
@@ -57,6 +51,7 @@
   <button class="btn" id="resumeBtn">RESUME</button>
   <button class="btn btn-ghost" id="pauseRestart">RESTART</button>
   <button class="btn btn-ghost" id="pauseWorld">CHANGE WORLD</button>
+  <button class="btn btn-ghost" id="pauseMenu">MAIN MENU</button>
   <button class="btn btn-ghost" id="muteBtn">MUTE</button>
 </div>
 

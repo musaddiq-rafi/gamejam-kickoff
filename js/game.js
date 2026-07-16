@@ -153,9 +153,6 @@
   let styleBonus = 0, closeCalls = 0, kickoffBlasts = 0, noRollDist = 0;
   // juice
   let shakeT = 0, hitStopT = 0, dyingT = 0;
-  // tutorial
-  let tutorialT = 0;
-  let tutorialShown = false;
   let leaderboard = [];
 
   const scoreEl = document.getElementById('score');
@@ -185,7 +182,6 @@
   const fkFill = document.getElementById('fkFill');
   const fkReady = document.getElementById('fkReady');
   const pauseScreen = document.getElementById('pauseScreen');
-  const tutorialEl = document.getElementById('tutorial');
 
   // ---- helpers ----
   function fadeOut(el, done) {
@@ -241,7 +237,6 @@
     invisHud.classList.add('hidden'); freeKick.classList.add('hidden'); powerHud.classList.add('hidden');
     comboEl.classList.add('hidden'); comboEl.classList.remove('broken', 'bump');
     nextSpawnGap = 24; nextSpawnDist = 0;
-    tutorialT = tutorialShown ? 0 : 6;
 
     referee.userData.whistle = true;
     referee.position.set(3, 0, 2);
@@ -259,7 +254,7 @@
     resetGame();
     introT = 0;
     state = 'intro'; paused = false; pauseScreen.classList.add('hidden');
-    overScreen.classList.add('hidden');
+    overScreen.classList.add('hidden'); helpScreen.classList.add('hidden');
     fadeOut(worldScreen);
     introBanner.classList.remove('hidden');
     introL1.textContent = 'REFEREE WHISTLES';
@@ -403,20 +398,17 @@
   // ---- input ----
   function moveLane(dir) {
     if (state !== 'playing' || paused) return;
-    if (tutorialT > 0) tutorialT = 0;
     const u = player.userData;
     const nl = Math.min(2, Math.max(0, u.lane + dir));
     if (nl !== u.lane) u.lane = nl;
   }
   function doJump() {
     if (state !== 'playing' || paused) return;
-    if (tutorialT > 0) tutorialT = 0;
     const u = player.userData;
     if (!u.jumping && !u.rolling) { u.vy = JUMP_V; u.jumping = true; K.Audio.sfx.jump(); }
   }
   function doRoll() {
     if (state !== 'playing' || paused) return;
-    if (tutorialT > 0) tutorialT = 0;
     const u = player.userData;
     if (!u.rolling && !u.jumping) { u.rolling = true; u.rollT = ROLL_TIME; K.Audio.sfx.roll(); }
     else if (u.jumping) { u.vy = -JUMP_V * 1.4; }
@@ -430,10 +422,12 @@
   window.addEventListener('keydown', e => {
     if (state === 'help') {
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showMainMenu(); }
+      else if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
       return;
     }
     if (state === 'menu') {
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showWorldScreen(); }
+      else if (e.key === 'Escape') { e.preventDefault(); showFarewell(); }
       return;
     }
     if (state === 'world') {
@@ -447,6 +441,11 @@
     }
     if (state === 'farewell') {
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showMainMenu(); }
+      else if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
+      return;
+    }
+    if (state === 'over') {
+      if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
       return;
     }
     if (freeKickReady && e.key === ' ') { e.preventDefault(); shootFreeKick(); return; }
@@ -471,6 +470,10 @@
   }, { passive: true });
 
   document.getElementById('restartBtn').addEventListener('click', () => startGame());
+  document.getElementById('pauseBtn').addEventListener('click', () => {
+    if (state === 'playing') togglePause();
+    else if (state === 'intro') { paused = true; pauseScreen.classList.remove('hidden'); }
+  });
 
   const worldScreen = document.getElementById('worldScreen');
   const helpScreen = document.getElementById('helpScreen');
@@ -612,6 +615,7 @@
   document.getElementById('resumeBtn').addEventListener('click', togglePause);
   document.getElementById('pauseRestart').addEventListener('click', () => startGame());
   document.getElementById('pauseWorld').addEventListener('click', () => { paused = false; pauseScreen.classList.add('hidden'); showWorldScreen(); });
+  document.getElementById('pauseMenu').addEventListener('click', () => { paused = false; pauseScreen.classList.add('hidden'); showMainMenu(); });
   document.getElementById('muteBtn').addEventListener('click', () => { const on = K.Audio.toggle(); document.getElementById('muteBtn').textContent = on ? 'MUTE' : 'UNMUTE'; });
   const volMusic = document.getElementById('volMusic');
   const volSfx = document.getElementById('volSfx');
@@ -794,15 +798,6 @@
     if (u.rolling) noRollDist = 0;
     else { noRollDist += speed * dt; if (noRollDist >= 100) { noRollDist -= 100; styleBonus += 200; score += 200; K.Audio.sfx.style(); } }
 
-    // tutorial overlay — shows on first run, dismisses on any input or after a few seconds
-    if (tutorialT > 0) {
-      tutorialT -= dt;
-      tutorialEl.classList.remove('hidden');
-      if (tutorialT <= 0) { tutorialEl.classList.add('hidden'); tutorialShown = true; }
-    } else {
-      tutorialEl.classList.add('hidden');
-    }
-
     const moveAmt = speed * dt;
     field.scroll(moveAmt);
     field.update(distance, dt);
@@ -823,7 +818,7 @@
     }
     for (let i = stars.length - 1; i >= 0; i--) {
       const b = stars[i];
-      if (magnetT > 0) b.position.x += (u.x - b.position.x) * Math.min(1, dt * 10);
+      if (magnetT > 0) { b.position.x += (u.x - b.position.x) * Math.min(1, dt * 12); b.position.z += (PLAYER_Z - b.position.z) * Math.min(1, dt * 6); }
       b.position.z += moveAmt; b.userData.z = b.position.z;
       if (b.userData.animate) b.userData.animate(dt);
       if (b.userData.z > DESPAWN_Z) { starGroup.remove(b); stars.splice(stars.indexOf(b), 1); continue; }
