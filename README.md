@@ -8,6 +8,15 @@ and unleash a **KICKOFF BLAST** power run.
 Everything is procedural: geometry, textures, crowds, and a full Web Audio soundscape. No art or audio
 asset files. No build step.
 
+### Theme: KICKOFF — more than a match
+
+KICKOFF isn't just the start of a game — it's the first step of every journey.
+Every player starts somewhere. The cards you earn are the lessons along the way.
+The Goal Chance is your moment of truth. The KICKOFF BLAST is finding your flow.
+Your run ends not when you lose, but when you're sent off — and then you pick
+yourself up and **kick off again**. This is a game about beginnings, perseverance,
+and the path every footballer walks from the first whistle to the final card.
+
 ---
 
 ## ✨ Features
