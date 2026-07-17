@@ -26,9 +26,9 @@
   let selectedPlayer = 'messi';
 
   const container = document.getElementById('game');
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -81,7 +81,7 @@
   const composer = new THREE.EffectComposer(renderer);
   composer.setSize(window.innerWidth, window.innerHeight);
   composer.addPass(new THREE.RenderPass(scene, camera));
-  const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.35, 0.45, 0.92);
+  const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.35, 0.45, 0.92);
   composer.addPass(bloomPass);
   composer.addPass(new THREE.ShaderPass(VignetteShader));
   const fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
@@ -140,6 +140,13 @@
   let lives = 3;
   let fovKick = 0;
   let freeKickReady = false, ballKicked = false, ballReturning = false, ballKickT = 0, ballReturnT = 0;
+  // penalty box phase
+  let penaltyT = 0, penMarker = 0, penResolved = false, penKeeperGrace = 0, penDifficulty = 0;
+  let penaltyGoal = null, penaltyKeeper = null, penPhase = 'suspense', penPhaseT = 0;
+  let penShotT = 0, penBallFly = -1, penKeeperDive = 0, penScored = false, penKeeperPhase = Math.random() * 10, penShotFinished = false, penShotStage = 'fly';
+  let penResultCounted = false;
+  let penBallTarget = new THREE.Vector3(), penReboundFrom = new THREE.Vector3(), penReboundTo = new THREE.Vector3();
+  let goalCount = 0, nextPenaltyAt = 500, penaltyIndex = 0, lastPenaltyAt = 0;
   const ballReturnFrom = new THREE.Vector3();
   const LEG_POS = new THREE.Vector3(0, 0.32, -1.05);
   const BALL_AHEAD = new THREE.Vector3(0, 1.8, -11);
@@ -182,6 +189,19 @@
   const fkFill = document.getElementById('fkFill');
   const fkReady = document.getElementById('fkReady');
   const pauseScreen = document.getElementById('pauseScreen');
+  const penaltyScreen = document.getElementById('penaltyScreen');
+  const penaltyBanner = document.getElementById('penaltyBanner');
+  const penaltyGreen = document.getElementById('penaltyGreen');
+  const penaltyMarker = document.getElementById('penaltyMarker');
+  const penaltySub = document.getElementById('penaltySub');
+  const penaltyBar = document.getElementById('penaltyBar');
+  const penaltyScore = document.getElementById('penaltyScore');
+  const goalCountEl = document.getElementById('goalCount');
+  const penMap = document.getElementById('penMap');
+  const penMapDist = document.getElementById('penMapDist');
+  const penMapFill = document.getElementById('penMapFill');
+  const penMapPlayer = document.getElementById('penMapPlayer');
+  const penMapFlag = document.getElementById('penMapFlag');
 
   // ---- helpers ----
   function fadeOut(el, done) {
@@ -225,6 +245,9 @@
 
     speed = BASE_SPEED; distance = 0; starCount = 0; score = 0;
     grace = 0; iframes = 0; lives = 3; updateLives();
+    penKeeperGrace = 0; penaltyT = 0;
+    goalCount = 0; goalCountEl.textContent = '0';
+    nextPenaltyAt = 500; lastPenaltyAt = 0; penaltyIndex = 0;
     combo = 0; comboTimer = 0; bestCombo = 0;
     speedBoostT = 0; magnetT = 0; shieldT = PLAYERS[selectedPlayer].shieldStart ? 6 : 0;
     styleBonus = 0; closeCalls = 0; kickoffBlasts = 0; noRollDist = 0;
@@ -251,6 +274,7 @@
     if (world) currentWorld = world;
     field = K.Field.create(scene, currentWorld);
     applyLighting(currentWorld);
+    clearPenalty();
     resetGame();
     introT = 0;
     state = 'intro'; paused = false; pauseScreen.classList.add('hidden');
@@ -271,6 +295,7 @@
   function gameOver() {
     state = 'dying';
     dyingT = 0.14;
+    clearPenalty();
     K.Audio.sfx.crash();
     K.Audio.stopMusic();
     particles.smoke(player.position.clone().add(new THREE.Vector3(0, 1, 0)));
@@ -293,6 +318,7 @@
     document.getElementById('finalCombo').textContent = 'x' + (bestCombo >= 50 ? 5 : bestCombo >= 30 ? 4 : bestCombo >= 15 ? 3 : bestCombo >= 5 ? 2 : 1) + ' (' + bestCombo + ')';
     document.getElementById('finalClose').textContent = closeCalls;
     document.getElementById('finalBlasts').textContent = kickoffBlasts;
+    document.getElementById('finalGoals').textContent = goalCount;
     document.getElementById('finalStyle').textContent = styleBonus;
     document.getElementById('bestLine').textContent = best;
     document.getElementById('bestBanner').classList.toggle('hidden', !isBest);
@@ -353,29 +379,346 @@
     invisHud.classList.remove('hidden');
   }
 
+  // ---- GOAL CHANCE phase (every ~500m+) ----
+  function buildPenaltyKeeper() {
+    // a NORMAL standing goalkeeper (arms at his sides, not spread wide) who DIVES to save
+    const g = new THREE.Group();
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc98d5b, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const jersey = new THREE.MeshStandardMaterial({ color: 0x2f9e8f, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const shorts = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const sock = new THREE.MeshStandardMaterial({ color: 0x216b60, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 0.7, metalness: 0.15, flatShading: true });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 0.7, metalness: 0.15, flatShading: true });
+
+    const frontTex = K.makeFrontJersey({ base: 0x2f9e8f, number: 1, country: 'GK' });
+    const matFront = frontTex
+      ? new THREE.MeshStandardMaterial({ map: frontTex, color: 0xffffff, roughness: 0.7, metalness: 0.15, flatShading: true })
+      : jersey;
+    const torsoMats = [jersey, jersey, jersey, jersey, matFront, jersey];
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.95, 0.44), torsoMats);
+    torso.position.y = 1.4; torso.castShadow = true;
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.52, 0.52), skin);
+    head.position.y = 2.12; head.castShadow = true;
+
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), jersey);
+    const armR = armL.clone();
+    const armLP = new THREE.Group(); armLP.position.set(-0.5, 1.8, 0);
+    const armRP = new THREE.Group(); armRP.position.set(0.5, 1.8, 0);
+    [armL, armR].forEach(a => a.position.y = -0.4);
+    armLP.add(armL); armRP.add(armR);
+    const gloveL = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), gloveMat);
+    gloveL.position.y = -0.8; armLP.add(gloveL);
+    const gloveR = gloveL.clone(); gloveR.position.y = -0.8; armRP.add(gloveR);
+
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.9, 0.3), shorts);
+    const legR = legL.clone();
+    const legLP = new THREE.Group(); legLP.position.set(-0.2, 0.9, 0);
+    const legRP = new THREE.Group(); legRP.position.set(0.2, 0.9, 0);
+    [legL, legR].forEach(l => l.position.y = -0.45);
+    legLP.add(legL); legRP.add(legR);
+    [legL, legR].forEach(l => {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.38, 0.34), sock);
+      s.position.y = -0.52; l.add(s);
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.16, 0.46), boot);
+      b.position.set(0, -0.82, -0.07); l.add(b);
+    });
+
+    g.add(torso, head, armLP, armRP, legLP, legRP);
+    g.userData.pivots = { armLP, armRP, gloveL, gloveR };
+    g.position.set(0, 0, -18.5);
+    scene.add(g);
+    return g;
+  }
+
+  function buildPenaltyGoal() {
+    const g = new THREE.Group();
+    const postMat = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.6, flatShading: true });
+    const postGeo = new THREE.CylinderGeometry(0.18, 0.18, 3.2, 6);
+    const lp = new THREE.Mesh(postGeo, postMat); lp.position.set(-4.2, 1.6, 0);
+    const rp = new THREE.Mesh(postGeo.clone(), postMat); rp.position.set(4.2, 1.6, 0);
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 8.6, 6), postMat);
+    bar.rotation.z = Math.PI / 2; bar.position.set(0, 3.2, 0);
+    const net = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 3.2),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, side: THREE.DoubleSide, wireframe: true }));
+    net.position.set(0, 1.6, -0.2);
+    g.add(lp, rp, bar, net);
+    g.position.set(0, 0, -20);
+    scene.add(g);
+    const keeper = buildPenaltyKeeper();
+    return { goal: g, keeper };
+  }
+
+  // schedule the next penalty: first at 500, then gaps grow ~250m each time with jitter
+  function scheduleNextPenalty() {
+    lastPenaltyAt = nextPenaltyAt;
+    penaltyIndex++;
+    const gap = 1000 + (penaltyIndex - 1) * 250 + ((Math.random() * 400) | 0) - 100;
+    nextPenaltyAt += gap;
+  }
+
+  function updatePenMap() {
+    if (state !== 'playing') return;
+    const remain = Math.max(0, nextPenaltyAt - distance);
+    penMap.classList.remove('hidden');
+    penMapDist.textContent = remain.toFixed(0) + ' m';
+    const leg = nextPenaltyAt - lastPenaltyAt;
+    const p = leg > 0 ? Math.min(1, (distance - lastPenaltyAt) / leg) : 1;
+    penMapFill.style.width = (p * 100) + '%';
+    penMapPlayer.style.left = (p * 100) + '%';
+    if (remain < 250) penMap.classList.add('close'); else penMap.classList.remove('close');
+  }
+
+  function startPenalty() {
+    state = 'penalty';
+    penaltyT = 0; penResolved = false; penBallFly = -1; penShotT = 0; penScored = false; penResultCounted = false;
+    penKeeperDive = 0; penKeeperPhase = Math.random() * 10; penShotFinished = false; penShotStage = 'fly';
+    penPhase = 'suspense'; penPhaseT = 0;
+    // pick the keeper's dive side NOW so the player can read it during the aim phase
+    penKeeperDive = Math.random() < 0.5 ? -1 : 1;
+    // DIFFICULTY: scales 0 -> 1 as the run gets longer. Drives how late the keeper
+    // commits his tell and how fast the aim bar sweeps (so scoring gets harder).
+    penDifficulty = Math.min(1, distance / 6000);
+    // no green zone — the bar is just an aim indicator
+    penaltyGreen.style.display = 'none';
+    const remain = Math.max(0, nextPenaltyAt - distance);
+    penaltyBanner.textContent = '⚽ GOAL CHANCE!';
+    penaltyBanner.classList.remove('success', 'fail');
+    penaltyScore.textContent = 'GOALS  ' + goalCount + '   •   SCORE  ' + score.toLocaleString();
+    penaltyScore.classList.remove('show');
+    penaltyBar.style.display = ''; // keep the bar visible as aim track
+    penaltySub.classList.remove('pulse');
+    penaltySub.innerHTML = 'Goalkeeper in <b>' + remain.toFixed(0) + ' m</b> — take your shot!';
+    penaltyScreen.classList.remove('hidden');
+    // clear obstacles + stars ahead so the path is clean
+    for (let i = obstacles.length - 1; i >= 0; i--) { obstacleGroup.remove(obstacles[i]); }
+    obstacles.length = 0;
+    for (let i = stars.length - 1; i >= 0; i--) { starGroup.remove(stars[i]); }
+    stars.length = 0;
+    for (let i = powerups.length - 1; i >= 0; i--) { powerupGroup.remove(powerups[i]); }
+    powerups.length = 0;
+    const built = buildPenaltyGoal();
+    penaltyGoal = built.goal; penaltyKeeper = built.keeper;
+    penKeeperGrace = 60;
+    scene.attach(ball);
+    ball.position.copy(LEG_POS);
+    ball.rotation.set(0, 0, 0);
+    K.Audio.sfx.whistle();
+  }
+
+  // ============================================================================
+  //  PENALTY RULES (simple):
+  //   - The sweeping bar is just an AIM indicator (no green zone).
+  //   - The keeper pre-leans to his dive side (penKeeperDive) during the aim.
+  //   - You shoot to the side the marker is on.
+  //   - GOAL (surely): you shoot the side the keeper did NOT dive to.
+  //       -> ball flies into the open net corner and passes the bar, keeper never touches it.
+  //   - SAVE: you shoot the same side the keeper dives to.
+  //       -> ball flies into the keeper's glove; he catches it and it stays with him.
+  //  No other logic.
+  // ============================================================================
+  function resolvePenalty(forceMiss) {
+    if (penResolved || penPhase !== 'aim') return;
+    penResolved = true;
+    penPhase = 'shot'; penShotT = 0;
+    const shotSide = penMarker < 0.5 ? -1 : 1;
+    const scored = forceMiss ? false : (shotSide !== penKeeperDive);
+    penScored = scored;
+    const aimX = shotSide * 3.4;
+    // GOAL: open corner of the net (keeper is diving the OTHER way, ball passes the bar)
+    // SAVE: straight into the keeper's glove on his dive side (he catches it)
+    penBallTarget = scored
+      ? new THREE.Vector3(aimX, 1.1, -19.2)
+      : new THREE.Vector3(penKeeperDive * 3.0, 1.3, -18.2);
+    K.Audio.sfx.kick ? K.Audio.sfx.kick() : K.Audio.sfx.whistle();
+    playerObj && playerObj.anim && playerObj.anim.kick && playerObj.anim.kick();
+  }
+
+  function finishPenaltyResult() {
+    if (penResultCounted) return;
+    penResultCounted = true;
+    if (penScored) {
+      goalCount++;
+      goalCountEl.textContent = goalCount;
+      particles.confetti(player.position.clone().add(new THREE.Vector3(0, 1.4, 0)));
+      const gain = 500;
+      score += gain; styleBonus += gain;
+      speedBoostT = Math.max(speedBoostT, 3);
+      flashScreen(0.4);
+      K.Audio.sfx.goal();
+      penaltyBanner.textContent = '✅ GOAL!';
+      penaltyBanner.classList.add('success');
+      penaltySub.innerHTML = 'Goal succeeded!  <b>+' + gain + '</b>';
+    } else {
+      penaltyBanner.textContent = '❌ GOAL FAILED';
+      penaltyBanner.classList.add('fail');
+      penaltySub.innerHTML = 'Keeper saved it — no harm done, keep running!';
+      K.Audio.sfx.crash();
+    }
+    penaltyScore.classList.add('show');
+    penaltyScore.textContent = 'GOALS  ' + goalCount + '   •   SCORE  ' + score.toLocaleString();
+    scheduleNextPenalty();
+    setTimeout(endPenalty, 1400);
+  }
+
+  function endPenalty() {
+    if (penaltyGoal) { scene.remove(penaltyGoal); penaltyGoal = null; }
+    if (penaltyKeeper) { scene.remove(penaltyKeeper); penaltyKeeper = null; }
+    penaltyScreen.classList.add('hidden');
+    player.attach(ball); // reattach to the player's feet
+    ball.position.copy(LEG_POS);
+    ball.rotation.set(0, 0, 0);
+    grace = 1.2; // brief safety so nothing immediately hits
+    nextSpawnDist = distance + 24;
+    state = 'playing';
+  }
+
+  function clearPenalty() {
+    if (penaltyGoal) { scene.remove(penaltyGoal); penaltyGoal = null; }
+    if (penaltyKeeper) { scene.remove(penaltyKeeper); penaltyKeeper = null; }
+    if (ball.parent !== player) { player.attach(ball); ball.position.copy(LEG_POS); ball.rotation.set(0, 0, 0); }
+    penaltyScreen.classList.add('hidden');
+    penResolved = false; penBallFly = -1; penPhase = 'suspense'; penPhaseT = 0; penShotFinished = false; penShotStage = 'fly';
+  }
+
+  function updatePenalty(dt) {
+    penaltyT += dt;
+    penPhaseT += dt;
+
+    const u = player.userData;
+    // keep the player dribbling in place (legs move, field scrolls slowly for motion)
+    runPhase += dt * 12;
+    playerObj.animate(runPhase, false);
+    u.x += (LANES[u.lane] - u.x) * Math.min(1, dt * 12);
+    player.position.x = u.x;
+
+    // slow field scroll for a sense of motion without advancing distance
+    const moveAmt = 4 * dt;
+    field.scroll(moveAmt);
+    field.update(distance, dt);
+
+    // keeper idle ready-stance (and a full dive during the shot)
+    if (penaltyKeeper) {
+      const baseX = 0, baseZ = -18.5;
+      if (penPhase === 'shot' || penPhase === 'result') {
+        const k = Math.min(1, penShotT / 0.4);
+        const e = k * k * (3 - 2 * k);
+        // dive toward penKeeperDive side: slide + lean + arms reach that way
+        penaltyKeeper.position.x = baseX + penKeeperDive * 3.0 * e;
+        penaltyKeeper.position.z = baseZ + penKeeperDive * 0.3 * e;
+        penaltyKeeper.rotation.z = -penKeeperDive * 1.15 * e; // topple sideways
+        penaltyKeeper.rotation.y = penKeeperDive * 0.5 * e;
+        const reach = penKeeperDive * e;
+        if (penaltyKeeper.userData.pivots) {
+          const p = penaltyKeeper.userData.pivots;
+          p.armLP.rotation.z = -0.1 - Math.max(0, reach) * 1.4 + Math.min(0, reach) * 0.2;
+          p.armRP.rotation.z = 0.1 + Math.min(0, reach) * 1.4 - Math.max(0, reach) * 0.2;
+          p.armLP.rotation.x = -reach * 0.6;
+          p.armRP.rotation.x = -reach * 0.6;
+        }
+      } else if (penPhase === 'aim') {
+        // TELEGRAPH: keeper pre-leans toward his dive side so the player can read it.
+        // At higher difficulty he stays neutral longer, then snaps the lean late —
+        // so the tell is much harder to read in time.
+        const delay = penDifficulty * 1.4;            // up to 1.4s of neutral stance
+        const ramp = 0.3 + penDifficulty * 0.9;        // snappier lean when hard
+        const leanAmt = Math.min(1, Math.max(0, (penaltyT - delay)) * ramp);
+        const d = penKeeperDive * leanAmt;
+        penaltyKeeper.position.x = baseX + d * 1.8;
+        penaltyKeeper.rotation.z = -penKeeperDive * 0.3 * leanAmt;
+        penaltyKeeper.rotation.y = penKeeperDive * 0.2 * leanAmt;
+        penaltyKeeper.position.y = Math.abs(Math.sin(penKeeperPhase)) * 0.05;
+        penaltyKeeper.position.z = baseZ;
+        const p = penaltyKeeper.userData.pivots;
+        if (p) {
+          const spread = leanAmt;
+          p.armLP.rotation.z = -0.15 + (-penKeeperDive * 0.5) * spread;
+          p.armRP.rotation.z = 0.15 + (-penKeeperDive * 0.5) * spread;
+          p.armLP.rotation.x = Math.abs(penKeeperDive) * 0.3 * spread;
+          p.armRP.rotation.x = Math.abs(penKeeperDive) * 0.3 * spread;
+        }
+      } else {
+        // ready stance (suspense)
+        penKeeperPhase += dt * 4;
+        const w = Math.sin(penKeeperPhase) * 0.06;
+        penaltyKeeper.position.set(baseX, Math.abs(Math.sin(penKeeperPhase)) * 0.05, baseZ);
+        penaltyKeeper.rotation.set(0, w * 0.3, 0);
+        if (penaltyKeeper.userData.pivots) {
+          const p = penaltyKeeper.userData.pivots;
+          p.armLP.rotation.set(0, 0, -0.15 + w); p.armRP.rotation.set(0, 0, 0.15 - w);
+        }
+      }
+    }
+
+    // ball flight after the shot (ball is detached to scene space during the penalty)
+    const footWorld = new THREE.Vector3().copy(player.position).add(LEG_POS);
+    if (penPhase === 'shot') {
+      penShotT += dt;
+      if (penShotStage === 'fly') {
+        const k = Math.min(1, penShotT / 0.45);
+        const e = k * k * (3 - 2 * k);
+        ball.position.lerpVectors(footWorld, penBallTarget, e);
+        ball.position.y += Math.sin(k * Math.PI) * 1.4; // arc
+        ball.rotation.x -= dt * 18;
+        if (k >= 1) {
+          if (!penShotFinished) { penShotFinished = true; finishPenaltyResult(); }
+          // GOAL: ball is in the net, done.  SAVE: he catches it, then it returns.
+          if (!penScored) penShotStage = 'caught';
+        }
+      } else if (penShotStage === 'caught') {
+        // SAVE: ball sticks in the keeper's glove on his dive side...
+        if (penaltyKeeper && penaltyKeeper.userData.pivots) {
+          const glove = penKeeperDive < 0
+            ? penaltyKeeper.userData.pivots.gloveL
+            : penaltyKeeper.userData.pivots.gloveR;
+          const wp = new THREE.Vector3();
+          glove.getWorldPosition(wp);
+          if (penShotT < 0.45 + 0.25) {
+            ball.position.lerp(wp, Math.min(1, dt * 20));
+          } else if (penShotStage === 'caught') {
+            // ...then it returns back out toward the player (deflected save)
+            penShotStage = 'return';
+          }
+        }
+        ball.rotation.x -= dt * 4;
+      } else if (penShotStage === 'return') {
+        // ball bounces back out in front of the keeper and settles
+        const back = new THREE.Vector3(penKeeperDive * 2.2, 0.4, -15.5);
+        ball.position.lerp(back, Math.min(1, dt * 6));
+        ball.rotation.x -= dt * 6;
+      }
+    } else {
+      // ball sits at the feet while aiming/suspense
+      ball.position.lerp(footWorld, Math.min(1, dt * 10));
+    }
+
+    // SUSPENSE: build tension before the bar appears
+    if (penPhase === 'suspense') {
+      if (penPhaseT < 0.9) penaltySub.innerHTML = 'Goalkeeper in <b>' + Math.max(0, nextPenaltyAt - distance).toFixed(0) + ' m</b> — take your shot!';
+      else if (penPhaseT < 1.8) penaltySub.textContent = 'Steady… watch the keeper…';
+      else if (penPhaseT < 2.5) { penaltySub.textContent = 'Watch which way he leans!'; penaltySub.classList.add('pulse'); }
+      else { penPhase = 'aim'; penPhaseT = 0; penaltyBar.classList.remove('dimmed'); penaltySub.classList.add('pulse'); penaltySub.innerHTML = 'Shoot the side the keeper <b>isn\'t</b> leaning!'; K.Audio.sfx.whistle(); }
+    } else if (penPhase === 'aim') {
+      // marker sweeps, faster as difficulty rises — it is only an AIM indicator
+      const sweepSpeed = 1.6 + penDifficulty * 2.2;
+      penMarker = (Math.sin(penaltyT * sweepSpeed) * 0.5 + 0.5);
+      penaltyMarker.style.left = (penMarker * 100) + '%';
+      if (penPhaseT > 6) { resolvePenalty(true); } // safety auto-miss
+    }
+
+    // camera eases to a behind-the-shoulder view of the goal
+    const camPos = new THREE.Vector3(u.x * 0.3, 3.0, 6.5);
+    const camLook = new THREE.Vector3(u.x * 0.3, 1.4, -18);
+    camera.position.lerp(camPos, Math.min(1, dt * 4));
+    camera.lookAt(camLook);
+    camera.fov = 55; camera.updateProjectionMatrix();
+  }
+
   // ---- spawning ----
-  function spawnChunk(z) {
-    if (Math.random() < KEEPER_CHANCE) {
-      const o = K.Opponent.create(1, 'keeper', 1);
-      o.position.z = z; o.userData.z = z;
-      obstacleGroup.add(o); obstacles.push(o);
-      return;
-    }
-    const order = [0, 1, 2];
-    for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [order[i], order[j]] = [order[j], order[i]]; }
-    const blockedCount = Math.random() < 0.55 ? 1 : 2;
-    for (let i = 0; i < blockedCount; i++) {
-      const lane = order[i];
-      const o = K.Opponent.create(lane, 'player', 2 + ((Math.random() * 9) | 0));
-      o.position.x = LANES[lane]; o.position.z = z; o.userData.z = z;
-      obstacleGroup.add(o); obstacles.push(o);
-    }
-    const freeLane = order[blockedCount];
+  function spawnStarsOnly(z, freeLane) {
     const n = 3 + ((Math.random() * 4) | 0);
     let orbSpawned = false, orbIdx = -1, orbType = 'speed';
     if (Math.random() < 0.22) {
       orbSpawned = true; orbIdx = (Math.random() * n) | 0;
-      // weight the GOLDEN BOOT a little higher so it's actually encountered
       const types = ['speed', 'magnet', 'magnet', 'shield', 'life'];
       orbType = types[(Math.random() * types.length) | 0];
     }
@@ -393,6 +736,34 @@
       b.userData.z = pz; b.userData.lane = freeLane;
       starGroup.add(b); stars.push(b);
     }
+  }
+
+  function spawnChunk(z) {
+    if (penKeeperGrace > 0) {
+      // no keeper in the way right after a penalty box — only rival runners
+      const order = [0, 1, 2];
+      for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [order[i], order[j]] = [order[j], order[i]]; }
+      const blockedCount = Math.random() < 0.55 ? 1 : 2;
+      for (let i = 0; i < blockedCount; i++) {
+        const lane = order[i];
+        const o = K.Opponent.create(lane, 'player', 2 + ((Math.random() * 9) | 0));
+        o.position.x = LANES[lane]; o.position.z = z; o.userData.z = z;
+        obstacleGroup.add(o); obstacles.push(o);
+      }
+      spawnStarsOnly(z, order[blockedCount]);
+      return;
+    }
+    // NOTE: full goalkeepers only appear in the Penalty Box — not on the open track.
+    const order = [0, 1, 2];
+    for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [order[i], order[j]] = [order[j], order[i]]; }
+    const blockedCount = Math.random() < 0.55 ? 1 : 2;
+    for (let i = 0; i < blockedCount; i++) {
+      const lane = order[i];
+      const o = K.Opponent.create(lane, 'player', 2 + ((Math.random() * 9) | 0));
+      o.position.x = LANES[lane]; o.position.z = z; o.userData.z = z;
+      obstacleGroup.add(o); obstacles.push(o);
+    }
+    spawnStarsOnly(z, order[blockedCount]);
   }
 
   // ---- input ----
@@ -448,7 +819,11 @@
       if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
       return;
     }
-    if (freeKickReady && e.key === ' ') { e.preventDefault(); shootFreeKick(); return; }
+    if (state === 'penalty') {
+      if (e.key === ' ') { e.preventDefault(); resolvePenalty(); }
+      return;
+    }
+    if (state === 'playing' && freeKickReady && e.key === ' ') { e.preventDefault(); shootFreeKick(); return; }
     switch (e.key) {
       case 'ArrowLeft': case 'a': case 'A': moveLane(-1); break;
       case 'ArrowRight': case 'd': case 'D': moveLane(1); break;
@@ -840,6 +1215,12 @@
       spawnChunk(SPAWN_Z);
       nextSpawnDist += 24 + Math.random() * 16;
     }
+
+    // penalty box trigger at escalating, jittered distances (500, ~1500, ~2750 …)
+    if (penKeeperGrace > 0) penKeeperGrace -= speed * dt;
+    if (state === 'playing' && distance >= nextPenaltyAt && invisibleT <= 0 && grace <= 0) {
+      startPenalty();
+    }
   }
 
   function prefillTrack() {
@@ -888,6 +1269,8 @@
       if (dyingT <= 0) finishGameOver();
     } else if (!paused && state === 'playing') {
       update(dt);
+    } else if (!paused && state === 'penalty') {
+      updatePenalty(dt);
     } else if (state === 'intro') {
       updateIntro(dt);
     }
@@ -896,6 +1279,8 @@
     scoreEl.textContent = score;
     distEl.textContent = Math.floor(distance) + ' m';
     starEl.textContent = starCount;
+    goalCountEl.textContent = goalCount;
+    if (state === 'playing') updatePenMap(); else penMap.classList.add('hidden');
 
     // camera shake
     if (shakeT > 0) {
@@ -907,9 +1292,11 @@
     }
 
     // smooth KICKOFF BLAST camera punch (eases back to base fov)
-    fovKick += (0 - fovKick) * Math.min(1, dt * 3.5);
-    camera.fov = 60 + fovKick * 9;
-    camera.updateProjectionMatrix();
+    if (state !== 'penalty') {
+      fovKick += (0 - fovKick) * Math.min(1, dt * 3.5);
+      camera.fov = 60 + fovKick * 9;
+      camera.updateProjectionMatrix();
+    }
 
     composer.render();
 

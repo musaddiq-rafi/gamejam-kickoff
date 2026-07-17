@@ -22,12 +22,25 @@
     <button class="pause-btn" id="pauseBtn" title="Pause (ESC)">ESC</button>
     <div class="lives" id="livesHud">♥♥♥</div>
     <div class="stars"><span class="star-icon"></span><span id="starCount">0</span></div>
+    <div class="goals" id="goalsHud"><span class="goal-icon">⚽</span><span id="goalCount">0</span></div>
     <div class="combo hidden" id="comboEl"><span id="comboMult">x2</span> <span class="combo-n">COMBO</span></div>
     <div class="powerup hidden" id="powerHud">
       <span class="pu-icon" id="powerIcon">⚡</span>
       <span class="pu-label" id="powerLabel">SPEED</span>
       <div class="pu-bar"><div class="pu-fill" id="powerFill"></div></div>
     </div>
+  </div>
+</div>
+
+<div class="penmap hidden" id="penMap">
+  <div class="penmap-row">
+    <span class="penmap-label">DISTANCE TO GOAL</span>
+    <span class="penmap-dist" id="penMapDist">—</span>
+  </div>
+  <div class="penmap-track" id="penMapTrack">
+    <div class="penmap-fill" id="penMapFill"></div>
+    <div class="penmap-flag" id="penMapFlag"></div>
+    <div class="penmap-player" id="penMapPlayer">🏃</div>
   </div>
 </div>
 
@@ -77,6 +90,16 @@
 <div class="fk-charge" id="fkCharge">
   <div class="fk-charge-label">KICKOFF METER</div>
   <div class="fk-charge-bar"><div class="fk-charge-fill" id="fkFill"></div></div>
+</div>
+
+<div class="penalty hidden" id="penaltyScreen">
+  <div class="penalty-banner" id="penaltyBanner">⚽ GOAL CHANCE!</div>
+  <div class="penalty-sub" id="penaltySub">Press <b>SPACE</b> when the marker hits the green zone</div>
+  <div class="penalty-bar" id="penaltyBar">
+    <div class="penalty-green" id="penaltyGreen"></div>
+    <div class="penalty-marker" id="penaltyMarker"></div>
+  </div>
+  <div class="penalty-score" id="penaltyScore"></div>
 </div>
 
   <div class="overlay" id="helpScreen">
@@ -139,6 +162,7 @@
     <div class="stat"><span>Best Combo</span><b id="finalCombo">x1</b></div>
     <div class="stat"><span>Close Calls</span><b id="finalClose">0</b></div>
     <div class="stat"><span>Kickoff Blasts</span><b id="finalBlasts">0</b></div>
+    <div class="stat"><span>Penalty Goals</span><b id="finalGoals">0</b></div>
     <div class="stat"><span>Style Bonus</span><b id="finalStyle">0</b></div>
     <div class="stat"><span>Best</span><b id="bestLine">0</b> m</div>
   </div>
