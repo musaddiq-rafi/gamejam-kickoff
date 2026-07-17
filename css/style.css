@@ -522,3 +522,6 @@ canvas { display: block; }
 .lb-title { font-size: 14px; font-weight: 800; letter-spacing: 2px; opacity: .8; margin-bottom: 6px; }
 .leaderboard { list-style: decimal inside; color: #fff; font-size: 14px; max-width: 360px; margin: 0 auto 8px; text-align: left; opacity: .92; }
 .leaderboard li { padding: 2px 0; }
+.over-theme { margin: 16px auto 10px; max-width: 420px; text-align: center; }
+.over-theme .ot-line { font-size: 14px; font-weight: 600; line-height: 1.8; opacity: .8; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
+.over-theme .ot-highlight { font-size: 16px; font-weight: 900; color: #43e07a; opacity: 1; }
