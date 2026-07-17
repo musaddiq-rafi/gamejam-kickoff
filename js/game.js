@@ -185,6 +185,7 @@
   const introL1 = document.getElementById('introL1');
   const introL2 = document.getElementById('introL2');
   const introL3 = document.getElementById('introL3');
+  const themeScreen = document.getElementById('themeScreen');
   const cardToastWrap = document.getElementById('cardToastWrap');
   const invisHud = document.getElementById('invisHud');
   const invisNum = document.getElementById('invisNum');
@@ -284,10 +285,19 @@
     clearPenalty();
     resetGame();
     introT = 0;
-    state = 'intro'; paused = false; pauseScreen.classList.add('hidden');
+    paused = false; pauseScreen.classList.add('hidden');
     overScreen.classList.add('hidden'); helpScreen.classList.add('hidden');
     document.getElementById('redCardPop').classList.add('hidden');
     fadeOut(worldScreen);
+    themeScreen.classList.remove('hidden');
+    state = 'theme';
+    themeScreen._autoTimer = setTimeout(() => { if (state === 'theme') beginIntro(); }, 6500);
+  }
+  function beginIntro() {
+    if (state !== 'theme') return;
+    clearTimeout(themeScreen._autoTimer);
+    themeScreen.classList.add('hidden');
+    state = 'intro';
     introBanner.classList.remove('hidden');
     introL1.textContent = 'REFEREE WHISTLES';
     introL2.textContent = 'KICK OFF!';
@@ -299,6 +309,7 @@
     const p = K.Audio.resume();
     if (p && p.then) p.then(playKickoff); else playKickoff();
   }
+  themeScreen.addEventListener('click', () => { if (state === 'theme') beginIntro(); });
 
   function redCard() {
     showBanner('RED CARD!', 'Sent off — game over', 'red');
@@ -884,6 +895,10 @@
       else if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
       return;
     }
+    if (state === 'theme') {
+      if (e.key === ' ') { e.preventDefault(); beginIntro(); }
+      return;
+    }
     if (state === 'over') {
       if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
       return;
@@ -900,7 +915,7 @@
       case 'ArrowDown': case 's': case 'S': doRoll(); break;
       case 'm': case 'M': K.Audio.toggle(); break;
       case 'p': case 'P': case 'Escape': togglePause(); break;
-      case 'r': case 'R': if (['playing', 'over', 'world', 'intro', 'dying'].indexOf(state) >= 0) startGame(); break;
+      case 'r': case 'R': if (['playing', 'over', 'world', 'intro', 'dying', 'theme'].indexOf(state) >= 0) startGame(); break;
     }
   });
 

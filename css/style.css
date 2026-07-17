@@ -102,6 +102,34 @@ canvas { display: block; }
 .loading-track { width: 280px; height: 8px; border-radius: 6px; background: rgba(255,255,255,.2); overflow: hidden; }
 .loading-fill { height: 100%; width: 0%; background: linear-gradient(90deg,#ffd54f,#43d17a); }
 
+/* ---- theme splash ---- */
+.theme-screen {
+  position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: auto; color: #fff;
+  background: rgba(5,8,16,.92); text-align: center; cursor: pointer;
+}
+.theme-screen.hidden { display: none; }
+.theme-emblem { font-size: 52px; margin-bottom: 10px; filter: drop-shadow(0 0 20px rgba(46,204,113,.5)); }
+.theme-line {
+  font-family: 'Bebas Neue', 'Montserrat', sans-serif; font-size: 22px;
+  letter-spacing: 1px; line-height: 1.6; text-shadow: 0 2px 14px rgba(0,0,0,.6);
+  opacity: 0; transform: translateY(12px);
+  animation: themeFadeIn .6s ease forwards;
+}
+.theme-line:nth-child(2) { animation-delay: .2s; }
+.theme-line:nth-child(3) { animation-delay: .6s; }
+.theme-line:nth-child(4) { animation-delay: 1.0s; }
+.theme-line:nth-child(5) { animation-delay: 1.4s; }
+.theme-line:nth-child(6) { animation-delay: 1.8s; }
+.theme-line:nth-child(7) { animation-delay: 2.2s; }
+.theme-line-6 { font-size: 26px; font-weight: 900; color: #43e07a; }
+@keyframes themeFadeIn { to { opacity: 1; transform: translateY(0); } }
+.theme-skip {
+  position: absolute; bottom: 40px; font-size: 13px; font-weight: 600;
+  letter-spacing: 2px; opacity: .6; animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100% { opacity: .6; } 50% { opacity: .2; } }
+
 /* display font for key headings */
 .wc-name, .team-select-label, .lb-title, .kickoff-prompt, .invis-hud .invis-label, .loading-text {
   font-family: 'Bebas Neue', 'Montserrat', sans-serif;
