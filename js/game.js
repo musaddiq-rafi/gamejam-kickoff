@@ -147,6 +147,11 @@
   let penResultCounted = false;
   let penBallTarget = new THREE.Vector3(), penReboundFrom = new THREE.Vector3(), penReboundTo = new THREE.Vector3();
   let goalCount = 0, nextPenaltyAt = 500, penaltyIndex = 0, lastPenaltyAt = 0;
+  let slowmoT = 0;                 // slow-motion timer (visual lead-in to GOAL CHANCE)
+  let penLead = null;              // visual goal+keeper that runs up before GOAL CHANCE
+  let penLeadSpawned = false;      // ensures the lead-in spawns only once per chance
+  let penLeadActive = false;       // true while the goal is flying in (run is frozen)
+  const PEN_LEAD = 55;             // runway distance over which the goal flies in toward the player
   const ballReturnFrom = new THREE.Vector3();
   const LEG_POS = new THREE.Vector3(0, 0.32, -1.05);
   const BALL_AHEAD = new THREE.Vector3(0, 1.8, -11);
@@ -248,6 +253,7 @@
     penKeeperGrace = 0; penaltyT = 0;
     goalCount = 0; goalCountEl.textContent = '0';
     nextPenaltyAt = 500; lastPenaltyAt = 0; penaltyIndex = 0;
+    slowmoT = 0; penLeadSpawned = false; penLeadActive = false; if (penLead) { scene.remove(penLead); penLead = null; }
     combo = 0; comboTimer = 0; bestCombo = 0;
     speedBoostT = 0; magnetT = 0; shieldT = PLAYERS[selectedPlayer].shieldStart ? 6 : 0;
     styleBonus = 0; closeCalls = 0; kickoffBlasts = 0; noRollDist = 0;
@@ -428,6 +434,38 @@
     g.position.set(0, 0, -18.5);
     scene.add(g);
     return g;
+  }
+
+  // a SMALL goal (posts + crossbar + NET) sits in ONE lane on the open track, with a
+  // keeper in front of it. Appears while running like any other defender.
+  function buildTrackGoal() {
+    const g = new THREE.Group();
+    const postMat = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.6, flatShading: true });
+    const half = 1.5;                                  // lane-width goal
+    const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.4, 6);
+    const lp = new THREE.Mesh(postGeo, postMat); lp.position.set(-half, 1.2, 0);
+    const rp = new THREE.Mesh(postGeo.clone(), postMat); rp.position.set(half, 1.2, 0);
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, half * 2 + 0.24, 6), postMat);
+    bar.rotation.z = Math.PI / 2; bar.position.set(0, 2.4, 0);
+    const net = new THREE.Mesh(new THREE.PlaneGeometry(half * 2, 2.4),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, side: THREE.DoubleSide, wireframe: true }));
+    net.position.set(0, 1.2, -0.15);
+    g.add(lp, rp, bar, net);
+    return g;
+  }
+
+  // visual goal + keeper that runs toward the player as a lead-in to GOAL CHANCE.
+  // Purely cosmetic — not in the obstacles array, so it never collides.
+  function spawnPenaltyLead() {
+    const lane = (Math.random() * 3) | 0;
+    const grp = new THREE.Group();
+    const k = buildPenaltyKeeper(); k.scale.set(0.7, 0.7, 0.7); k.position.set(0, 0, 0);
+    const goal = buildTrackGoal(); goal.position.set(0, 0, -2.2);
+    grp.add(k, goal);
+    grp.position.set(LANES[lane], 0, -PEN_LEAD - 10);
+    grp.userData = { lane: lane, animate: function (dt) { if (k.userData && k.userData.animate) k.userData.animate(dt); } };
+    scene.add(grp);
+    penLead = grp;
   }
 
   function buildPenaltyGoal() {
@@ -738,18 +776,26 @@
     }
   }
 
+  // spawn a rival defender that CHARGES toward the player (extra closing speed + optional
+  // angled approach). Spawn distance is extended by the same factor so reaction time is
+  // preserved — the game stays just as playable, just more "they're coming for you".
+  function spawnDefender(lane, z) {
+    const o = K.Opponent.create(lane, 'player', 2 + ((Math.random() * 9) | 0));
+    const closing = 0.35 + Math.random() * 0.20;        // +35%..+55% — opponents sprint at you
+    o.userData.closing = closing;
+    o.userData.angleTo = null;                          // decided later, only when close (see update loop)
+    const spawnZ = z - closing * 55;                    // start further so they arrive at the same time
+    o.position.x = LANES[lane]; o.position.z = spawnZ; o.userData.z = spawnZ;
+    obstacleGroup.add(o); obstacles.push(o);
+  }
+
   function spawnChunk(z) {
     if (penKeeperGrace > 0) {
       // no keeper in the way right after a penalty box — only rival runners
       const order = [0, 1, 2];
       for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [order[i], order[j]] = [order[j], order[i]]; }
       const blockedCount = Math.random() < 0.55 ? 1 : 2;
-      for (let i = 0; i < blockedCount; i++) {
-        const lane = order[i];
-        const o = K.Opponent.create(lane, 'player', 2 + ((Math.random() * 9) | 0));
-        o.position.x = LANES[lane]; o.position.z = z; o.userData.z = z;
-        obstacleGroup.add(o); obstacles.push(o);
-      }
+      for (let i = 0; i < blockedCount; i++) spawnDefender(order[i], z);
       spawnStarsOnly(z, order[blockedCount]);
       return;
     }
@@ -757,12 +803,7 @@
     const order = [0, 1, 2];
     for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [order[i], order[j]] = [order[j], order[i]]; }
     const blockedCount = Math.random() < 0.55 ? 1 : 2;
-    for (let i = 0; i < blockedCount; i++) {
-      const lane = order[i];
-      const o = K.Opponent.create(lane, 'player', 2 + ((Math.random() * 9) | 0));
-      o.position.x = LANES[lane]; o.position.z = z; o.userData.z = z;
-      obstacleGroup.add(o); obstacles.push(o);
-    }
+    for (let i = 0; i < blockedCount; i++) spawnDefender(order[i], z);
     spawnStarsOnly(z, order[blockedCount]);
   }
 
@@ -1179,7 +1220,19 @@
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const o = obstacles[i];
-      o.position.z += moveAmt; o.userData.z = o.position.z;
+      const closing = o.userData.closing || 0;
+      o.position.z += moveAmt * (1 + closing); o.userData.z = o.position.z;
+      // When CLOSE, the defender crosses toward your CURRENT lane in whole-lane steps
+      // (eased glide so you SEE it move from one lane to another, never resting between).
+      // Hard-clamped to the 3-lane band so it can't leave lanes 0..2.
+      const CLOSE = -24;
+      if (o.position.z < CLOSE) {
+        const tx = LANES[player.userData.lane];
+        o.position.x += (tx - o.position.x) * Math.min(1, dt * 2.2);
+      }
+      o.position.x = Math.max(LANES[0], Math.min(LANES[2], o.position.x));
+      // last-moment tackle tell (within ~16m): lean in harder
+      o.userData.closePhase = (o.position.z < -16) ? Math.min(1, (-16 - o.position.z) / 16) : 0;
       if (!o.userData.frozen) o.userData.animate && o.userData.animate(dt);
       // style: reward a clean dodge / limbo as the rival passes
       if (!o.userData.scored && o.position.z > PLAYER_Z + 0.5) {
@@ -1216,9 +1269,40 @@
       nextSpawnDist += 24 + Math.random() * 16;
     }
 
+    // ---- GOAL CHANCE lead-in: player stops running, the goal flies in toward him ----
+    if (penLeadActive) {
+      // freeze the run: no distance/field/obstacle updates happen while the goal approaches
+      const ldt = slowmoT > 0 ? dt * 0.5 : dt;   // cinematic slow approach
+      if (penLead) {
+        // ease the goal + keeper from far away toward the player's viewpoint
+        const targetZ = -20;
+        penLead.position.z += (targetZ - penLead.position.z) * Math.min(1, ldt * 1.6);
+        const tx = LANES[player.userData.lane];
+        penLead.position.x += (tx - penLead.position.x) * Math.min(1, ldt * 2.2);
+        penLead.position.x = Math.max(LANES[0], Math.min(LANES[2], penLead.position.x));
+        if (penLead.userData.animate) penLead.userData.animate(ldt);
+        // when it has arrived close to the player, hand off to the real GOAL CHANCE
+        if (penLead.position.z > -21) {
+          scene.remove(penLead); penLead = null;
+          penLeadActive = false; penLeadSpawned = false;
+          startPenalty();                // existing GOAL CHANCE code — untouched
+        }
+      }
+      return;                           // skip the rest of the running update this frame
+    }
+
     // penalty box trigger at escalating, jittered distances (500, ~1500, ~2750 …)
     if (penKeeperGrace > 0) penKeeperGrace -= speed * dt;
+    // start the lead-in when we're within runway distance of the next GOAL CHANCE
+    if (state === 'playing' && !penLeadSpawned && distance >= nextPenaltyAt - PEN_LEAD && invisibleT <= 0 && grace <= 0) {
+      penLeadSpawned = true;
+      penLeadActive = true;
+      slowmoT = 1.2;                     // smooth slow-mo during the approach
+      spawnPenaltyLead();
+    }
     if (state === 'playing' && distance >= nextPenaltyAt && invisibleT <= 0 && grace <= 0) {
+      // (fallback: if lead-in wasn't active, just start — keeps old behaviour)
+      slowmoT = 1.0;
       startPenalty();
     }
   }
@@ -1264,11 +1348,15 @@
     let dt = (now - last) / 1000; last = now;
     if (dt > 0.05) dt = 0.05;
 
+    if (slowmoT > 0) slowmoT -= dt;
+    // slow-mo punch as GOAL CHANCE begins (only affects the running view)
+    const gdt = (slowmoT > 0 && state === 'playing') ? dt * 0.35 : dt;
+
     if (state === 'dying') {
       dyingT -= dt;
       if (dyingT <= 0) finishGameOver();
     } else if (!paused && state === 'playing') {
-      update(dt);
+      update(gdt);
     } else if (!paused && state === 'penalty') {
       updatePenalty(dt);
     } else if (state === 'intro') {

@@ -123,13 +123,17 @@
     const g = buildPlayer(kit);
     const ud = g.userData;
     ud.type = 'player'; ud.lane = lane; ud.z = 0; ud.halfDepth = 0.45;
+    ud.closing = 0; ud.angleTo = null; // set by game.js for the "charging at you" feel
     let ph = Math.random() * 10;
     ud.animate = function (dt) {
-      ph += dt * 9;
-      const swing = Math.sin(ph) * 0.8;
+      ph += dt * 13;
+      const swing = Math.sin(ph) * 1.05; // pronounced leg pump -> reads as sprinting at you
       const p = ud.pivots;
       p.legLP.rotation.x = swing; p.legRP.rotation.x = -swing;
-      p.armLP.rotation.x = -swing; p.armRP.rotation.x = swing;
+      p.armLP.rotation.x = -swing * 0.9; p.armRP.rotation.x = swing * 0.9;
+      // forward lean (charging) + last-moment tackle tell when close
+      const lean = 0.12 + (ud.closePhase || 0) * 0.5;
+      g.rotation.x = -lean;
     };
     return g;
   }
