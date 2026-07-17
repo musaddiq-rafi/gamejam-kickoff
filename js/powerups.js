@@ -1,29 +1,27 @@
-// powerups.js — glowing orbs: speed boost, golden boot (star magnet), one-hit shield, extra life.
+// powerups.js — glowing orbs: speed boost, golden boot (star magnet), one-hit shield, green card (safe player).
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
 
   const TYPES = {
-    speed:  { color: 0x4fc3f7, label: 'SPEED',  dur: 4 },
-    magnet: { color: 0xffd54f, label: 'GOLDEN BOOT', dur: 5 },
-    shield: { color: 0x4fd17a, label: 'SHIELD', dur: 6 },
-    life:   { color: 0xff3b5c, label: 'LIFE',   dur: 0 }
+    speed:     { color: 0x4fc3f7, label: 'SPEED',  dur: 4 },
+    magnet:    { color: 0xffd54f, label: 'GOLDEN BOOT', dur: 5 },
+    shield:    { color: 0x4fd17a, label: 'SHIELD', dur: 6 },
+    greencard: { color: 0x2ecc71, label: 'GREEN CARD', dur: 0 }
   };
 
-  function makeHeart(color) {
+  function makeCard(color) {
     const grp = new THREE.Group();
     const mat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.55, roughness: 0.4, flatShading: true });
-    const top1 = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), mat); top1.position.set(-0.17, 0.16, 0);
-    const top2 = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), mat); top2.position.set(0.17, 0.16, 0);
-    const bot = new THREE.Mesh(new THREE.ConeGeometry(0.46, 0.62, 14), mat); bot.position.set(0, -0.18, 0); bot.rotation.z = Math.PI;
-    grp.add(top1, top2, bot);
+    const card = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.08), mat);
+    grp.add(card);
     return grp;
   }
 
   function createOrb(type) {
     const t = TYPES[type];
     const g = new THREE.Group();
-    const core = (type === 'life')
-      ? makeHeart(t.color)
+    const core = (type === 'greencard')
+      ? makeCard(t.color)
       : new THREE.Mesh(
           new THREE.IcosahedronGeometry(0.4, 0),
           new THREE.MeshStandardMaterial({ color: t.color, emissive: t.color, emissiveIntensity: 0.7, roughness: 0.4, flatShading: true })

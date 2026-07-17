@@ -136,8 +136,8 @@
   let best = 0;
   let introT = 0, introOpp = null, introSwitched = false;
   let invisibleT = 0, ghostOn = false, nextFreeKickAt = 100;
-  const MAX_LIVES = 3;
-  let lives = 3;
+  const MAX_LIVES = 2;
+  let lives = 2;
   let fovKick = 0;
   let freeKickReady = false, ballKicked = false, ballReturning = false, ballKickT = 0, ballReturnT = 0;
   // penalty box phase
@@ -185,6 +185,7 @@
   const introL1 = document.getElementById('introL1');
   const introL2 = document.getElementById('introL2');
   const introL3 = document.getElementById('introL3');
+  const cardToastWrap = document.getElementById('cardToastWrap');
   const invisHud = document.getElementById('invisHud');
   const invisNum = document.getElementById('invisNum');
   const invisFill = document.getElementById('invisFill');
@@ -249,7 +250,7 @@
     player.rotation.z = 0; player.scale.y = 1;
 
     speed = BASE_SPEED; distance = 0; starCount = 0; score = 0;
-    grace = 0; iframes = 0; lives = 3; updateLives();
+    grace = 0; iframes = 0; lives = 2; updateLives();
     penKeeperGrace = 0; penaltyT = 0;
     goalCount = 0; goalCountEl.textContent = '0';
     nextPenaltyAt = 500; lastPenaltyAt = 0; penaltyIndex = 0;
@@ -285,6 +286,7 @@
     introT = 0;
     state = 'intro'; paused = false; pauseScreen.classList.add('hidden');
     overScreen.classList.add('hidden'); helpScreen.classList.add('hidden');
+    document.getElementById('redCardPop').classList.add('hidden');
     fadeOut(worldScreen);
     introBanner.classList.remove('hidden');
     introL1.textContent = 'REFEREE WHISTLES';
@@ -298,6 +300,12 @@
     if (p && p.then) p.then(playKickoff); else playKickoff();
   }
 
+  function redCard() {
+    showBanner('RED CARD!', 'Sent off — game over', 'red');
+    flashScreen(0.85, 'rgba(255,40,60,0.85)');
+    document.getElementById('redCardPop').classList.remove('hidden');
+    gameOver();
+  }
   function gameOver() {
     state = 'dying';
     dyingT = 0.14;
@@ -362,9 +370,29 @@
       }
     });
   }
-  function flashScreen(a) {
+  function flashScreen(a, color) {
+    if (color) flash.style.background = color;
+    else flash.style.background = '';
     flash.style.transition = 'none'; flash.style.opacity = a;
     requestAnimationFrame(() => { flash.style.transition = 'opacity .5s'; flash.style.opacity = '0'; });
+  }
+  function showBanner(big, small, kind) {
+    const toast = document.createElement('div');
+    toast.className = 'card-toast ' + kind;
+    const card = document.createElement('div');
+    card.className = 'ct-card ' + kind;
+    const text = document.createElement('div');
+    text.className = 'ct-text';
+    const b = document.createElement('div');
+    b.className = 'ct-big'; b.textContent = big;
+    const s = document.createElement('div');
+    s.className = 'ct-small'; s.textContent = small || '';
+    text.appendChild(b); text.appendChild(s);
+    toast.appendChild(card); toast.appendChild(text);
+    cardToastWrap.appendChild(toast);
+    while (cardToastWrap.children.length > 3) cardToastWrap.removeChild(cardToastWrap.firstChild);
+    requestAnimationFrame(() => toast.classList.add('out'));
+    setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 4000);
   }
 
   function awardFreeKick() { freeKickReady = true; fkReady.classList.remove('hidden'); }
@@ -757,7 +785,7 @@
     let orbSpawned = false, orbIdx = -1, orbType = 'speed';
     if (Math.random() < 0.22) {
       orbSpawned = true; orbIdx = (Math.random() * n) | 0;
-      const types = ['speed', 'magnet', 'magnet', 'shield', 'life'];
+      const types = ['speed', 'magnet', 'magnet', 'shield', 'greencard'];
       orbType = types[(Math.random() * types.length) | 0];
     }
     for (let i = 0; i < n; i++) {
@@ -1044,9 +1072,19 @@
 
   // ---- collisions ----
   function updateLives() {
-    let s = '';
-    for (let i = 0; i < MAX_LIVES; i++) s += (i < lives ? '♥' : '♡');
-    livesHud.textContent = s;
+    livesHud.innerHTML = '';
+    // MAX_LIVES = 2: 2 left = two green, 1 left = green + yellow, 0 = red
+    for (let i = 0; i < MAX_LIVES; i++) {
+      const c = document.createElement('div');
+      let cls = 'green';
+      if (i >= lives) {
+        if (lives <= 0 && i === MAX_LIVES - 1) cls = 'red';
+        else if (lives === 1 && i === MAX_LIVES - 1) cls = 'yellow';
+        else cls = 'used';
+      }
+      c.className = 'ref-card ' + cls;
+      livesHud.appendChild(c);
+    }
   }
   function checkObstacle(o) {
     if (state !== 'playing') return;
@@ -1071,7 +1109,8 @@
     lives--;
     updateLives();
     breakCombo();
-    if (lives <= 0) { gameOver(); return; }
+    if (lives <= 0) { redCard(); return; }
+    showBanner('YELLOW CARD', 'Warning! One more and you\'re out', 'yellow');
     iframes = 2.0;
     shakeT = 0.3; flashScreen(0.5);
     K.Audio.sfx.crash();
@@ -1124,7 +1163,7 @@
     if (type === 'speed') speedBoostT = 4;
     else if (type === 'magnet') magnetT = 5;
     else if (type === 'shield') shieldT = 6;
-    else if (type === 'life') { if (lives < MAX_LIVES) { lives++; updateLives(); particles.starBurst(player.position.clone().add(new THREE.Vector3(0, 1.4, 0))); } }
+    else if (type === 'greencard') { if (lives < MAX_LIVES) { lives++; updateLives(); particles.starBurst(player.position.clone().add(new THREE.Vector3(0, 1.4, 0))); } showBanner('GREEN CARD', 'Safe player — card cleared!', 'green'); }
     powerHud.classList.remove('hidden');
   }
 

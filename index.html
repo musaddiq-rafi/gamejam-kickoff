@@ -20,7 +20,7 @@
   </div>
   <div class="right">
     <button class="pause-btn" id="pauseBtn" title="Pause (ESC)">ESC</button>
-    <div class="lives" id="livesHud">♥♥♥</div>
+    <div class="lives" id="livesHud"></div>
     <div class="stars"><span class="star-icon"></span><span id="starCount">0</span></div>
     <div class="goals" id="goalsHud"><span class="goal-icon">⚽</span><span id="goalCount">0</span></div>
     <div class="combo hidden" id="comboEl"><span id="comboMult">x2</span> <span class="combo-n">COMBO</span></div>
@@ -45,6 +45,8 @@
 </div>
 
 <div class="popups" id="popups"></div>
+
+<div class="card-toast-wrap" id="cardToastWrap"></div>
 
 <div class="flash" id="flash"></div>
 
@@ -153,6 +155,10 @@
 </div>
 
 <div class="overlay hidden" id="overScreen">
+  <div class="red-card-pop hidden" id="redCardPop">
+    <div class="rc-card"></div>
+    <div class="rc-text">RED CARD!<br><span>GAME OVER</span></div>
+  </div>
   <div class="title" style="font-size:46px;">TACKLED!</div>
   <div class="final best-banner hidden" id="bestBanner">🏆 NEW PERSONAL BEST! 🏆</div>
   <div class="stats-grid">
