@@ -368,7 +368,6 @@
     paused = false; pauseScreen.classList.add('hidden');
     overScreen.classList.add('hidden'); helpScreen.classList.add('hidden');
     document.getElementById('redCardPop').classList.add('hidden');
-    fadeOut(worldScreen);
     themeScreen.classList.remove('hidden');
     state = 'theme';
     themeScreen._autoTimer = setTimeout(() => { if (state === 'theme') beginIntro(); }, 6500);
@@ -500,11 +499,11 @@
   }
   function reqText(level) {
     const r = UNLOCK_REQ[level]; if (!r) return '';
-    const parts = [];
-    if (career.lifetimeGoals < r.goals) parts.push((r.goals - career.lifetimeGoals) + ' more goals');
-    if (career.lifetimeM < r.m) parts.push(Math.max(0, Math.ceil(r.m - career.lifetimeM)) + ' more m');
-    if (career.lifetimeStars < r.stars) parts.push(Math.max(0, r.stars - career.lifetimeStars) + ' more ⭐');
-    return parts.length ? 'Reach ' + parts.join(' · ') : '';
+    const g = career.lifetimeGoals, m = Math.floor(career.lifetimeM), s = career.lifetimeStars;
+    const goalPart = g + '/' + r.goals + ' goals';
+    const mPart = m + '/' + r.m + ' m';
+    const sPart = s + '/' + r.stars + ' ⭐';
+    return 'Unlock: ' + goalPart + ' · ' + mPart + ' · ' + sPart;
   }
   // Raise unlocked level for any newly-met requirement (called at game-over).
   function checkUnlocks() {
@@ -1023,27 +1022,13 @@
 
   window.addEventListener('keydown', e => {
     if (state === 'help') {
-      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showMainMenu(); }
-      else if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
-      return;
-    }
-    if (state === 'menu') {
-      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showWorldScreen(); }
-      else if (e.key === 'Escape') { e.preventDefault(); showFarewell(); }
-      return;
-    }
-    if (state === 'world') {
-      if (e.key === ' ') { e.preventDefault(); startWithLoad(); }
-      else if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
-      return;
-    }
-    if (state === 'options' || state === 'customize') {
-      if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showCareer(); }
+      else if (e.key === 'Escape') { e.preventDefault(); showCareer(); }
       return;
     }
     if (state === 'farewell') {
-      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showMainMenu(); }
-      else if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showCareer(); }
+      else if (e.key === 'Escape') { e.preventDefault(); showCareer(); }
       return;
     }
     if (state === 'theme') {
@@ -1051,7 +1036,7 @@
       return;
     }
     if (state === 'over') {
-      if (e.key === 'Escape') { e.preventDefault(); showMainMenu(); }
+      if (e.key === 'Escape') { e.preventDefault(); showCareer(); }
       return;
     }
     if (state === 'penalty') {
@@ -1085,27 +1070,20 @@
     else if (state === 'intro') { paused = true; pauseScreen.classList.remove('hidden'); }
   });
 
-  const worldScreen = document.getElementById('worldScreen');
   const helpScreen = document.getElementById('helpScreen');
   const helpContinue = document.getElementById('helpContinue');
-  const changeWorldBtn = document.getElementById('changeWorldBtn');
-  if (changeWorldBtn) changeWorldBtn.addEventListener('click', showMainMenu);
-  const mainMenu = document.getElementById('mainMenu');
   const optionsScreen = document.getElementById('optionsScreen');
-  const customizeScreen = document.getElementById('customizeScreen');
   const farewellScreen = document.getElementById('farewellScreen');
 
-  const ALL_OVERLAYS = [mainMenu, optionsScreen, customizeScreen, farewellScreen, worldScreen, helpScreen, overScreen, pauseScreen, loadingScreen,
+  const ALL_OVERLAYS = [optionsScreen, farewellScreen, helpScreen, overScreen, pauseScreen, loadingScreen,
     document.getElementById('careerScreen'), document.getElementById('resetModal'), document.getElementById('storyScreen')];
   function hideAllOverlays() { ALL_OVERLAYS.forEach(el => { if (el) el.classList.add('hidden'); }); }
 
-  function showMainMenu() { showCareer(); }
   function showHelp() {
     hideAllOverlays();
     showOverlay(helpScreen);
     state = 'help';
   }
-  function showWorldScreen() { showCareer(); }
   function showOptions() {
     hideAllOverlays();
     showOverlay(optionsScreen);
@@ -1127,22 +1105,20 @@
     }
   }
 
-  function showCustomize() { showCareer(); }
   function showFarewell() {
     hideAllOverlays();
     showOverlay(farewellScreen);
     state = 'farewell';
   }
-  function showWorld() { showWorldScreen(); }
 
   function startWithLoad() {
     state = 'loading';
     runLoading('assets/loading_bg_' + currentWorld + '.png', () => startGame(), 1100);
   }
 
-  if (helpContinue) helpContinue.addEventListener('click', showMainMenu);
-  if (optionsScreen) document.getElementById('optionsBack').addEventListener('click', showMainMenu);
-  if (farewellScreen) document.getElementById('farewellPlay').addEventListener('click', showMainMenu);
+  if (helpContinue) helpContinue.addEventListener('click', showCareer);
+  if (optionsScreen) document.getElementById('optionsBack').addEventListener('click', showCareer);
+  if (farewellScreen) document.getElementById('farewellPlay').addEventListener('click', showCareer);
 
   // ---- lobby world card selection ----
   document.querySelectorAll('.lp-world').forEach(card => {
@@ -1288,7 +1264,7 @@
     lastUnlocked = 1;
     applyUnlocks();
     closeReset();
-    showMainMenu();
+    showCareer();
   }
   const careerBtn = document.getElementById('careerBtn');
   if (careerBtn) careerBtn.addEventListener('click', showCareer);
@@ -1305,17 +1281,16 @@
   const resetCancel = document.getElementById('resetCancel');
   if (resetCancel) resetCancel.addEventListener('click', closeReset);
 
-  // first screen: loading -> main menu
+  // first screen: loading -> career lobby
   helpScreen.classList.add('hidden');
-  worldScreen.classList.add('hidden');
   try { applyUnlocks(); } catch (e) { console.error(e); }
   runLoading('assets/lobby_bg_main.png', () => { try { showCareer(); } catch (e) { showFatal((e && e.message) || e); } }, 1300);
 
   // pause controls
   document.getElementById('resumeBtn').addEventListener('click', togglePause);
   document.getElementById('pauseRestart').addEventListener('click', () => startGame());
-  document.getElementById('pauseWorld').addEventListener('click', () => { paused = false; pauseScreen.classList.add('hidden'); showWorldScreen(); });
-  document.getElementById('pauseMenu').addEventListener('click', () => { paused = false; pauseScreen.classList.add('hidden'); showMainMenu(); });
+  document.getElementById('pauseWorld').addEventListener('click', () => { paused = false; pauseScreen.classList.add('hidden'); showCareer(); });
+  document.getElementById('pauseMenu').addEventListener('click', () => { paused = false; pauseScreen.classList.add('hidden'); showCareer(); });
   document.getElementById('muteBtn').addEventListener('click', () => { const on = K.Audio.toggle(); document.getElementById('muteBtn').textContent = on ? 'MUTE' : 'UNMUTE'; });
   const volMusic = document.getElementById('volMusic');
   const volSfx = document.getElementById('volSfx');
@@ -1373,7 +1348,8 @@
     // give breathing room: clear defenders right around the player
     for (let i = obstacles.length - 1; i >= 0; i--) {
       if (obstacles[i].position.z > -2 && obstacles[i].position.z < 4) {
-        obstacles.splice(i, 1); despawnOpponent(obstacles[i]);
+        const o = obstacles[i];
+        obstacles.splice(i, 1); despawnOpponent(o);
       }
     }
   }

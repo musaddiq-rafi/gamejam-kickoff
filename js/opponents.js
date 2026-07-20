@@ -28,9 +28,15 @@
     kBoot: new THREE.BoxGeometry(0.34, 0.16, 0.48)
   };
 
-  const playerFrontTex = K.makeFrontJersey
-    ? K.makeFrontJersey({ base: PLAYER_KIT.jersey, number: 7, country: 'RIVAL' })
-    : null;
+  // per-number front textures (cached) so each rival shows its own shirt number
+  const playerFrontTexCache = {};
+  function playerFrontTex(num) {
+    if (!K.makeFrontJersey) return null;
+    if (!playerFrontTexCache[num]) {
+      playerFrontTexCache[num] = K.makeFrontJersey({ base: PLAYER_KIT.jersey, number: num, country: 'RIVAL' });
+    }
+    return playerFrontTexCache[num];
+  }
   const keeperFrontTex = K.makeFrontJersey
     ? K.makeFrontJersey({ base: KEEPER_KIT.jersey, number: 1, country: 'GK' })
     : null;
@@ -48,12 +54,11 @@
   const keeperSock = new THREE.MeshStandardMaterial({ color: KEEPER_KIT.sock, roughness: 0.7, metalness: 0.15, flatShading: true });
   const boot = new THREE.MeshStandardMaterial({ color: 0x20242b, roughness: 0.7, metalness: 0.15, flatShading: true });
   const glove = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 0.7, metalness: 0.15, flatShading: true });
-  const matFrontPlayer = playerFrontTex ? mat(0, playerFrontTex) : jersey;
   const matFrontKeeper = keeperFrontTex ? mat(0, keeperFrontTex) : keeperJersey;
 
   function buildPlayer() {
     const g = new THREE.Group();
-    const torsoMats = [jersey, jersey, jersey, jersey, matFrontPlayer, jersey];
+    const torsoMats = [jersey, jersey, jersey, jersey, jersey, jersey];
     const torso = new THREE.Mesh(G.torso, torsoMats);
     torso.position.y = 1.4; torso.castShadow = true;
     const head = new THREE.Mesh(G.head, skin);
@@ -143,6 +148,16 @@
     ud.type = 'player'; ud.lane = lane; ud.z = 0; ud.halfDepth = 0.45;
     ud.closing = 0; ud.angleTo = null; // set by game.js for the "charging at you" feel
     ud.scored = false; ud.frozen = false; ud.closePhase = 0;
+    // apply this rival's shirt number to the torso front face
+    const num = (typeof number === 'number' && number >= 0) ? number : (2 + ((Math.random() * 9) | 0));
+    const tex = playerFrontTex(num);
+    const torso = g.children.find(c => c.isMesh && Array.isArray(c.material));
+    if (torso) {
+      const frontMat = mat(0, tex);
+      const mats = torso.material.slice();
+      mats[4] = frontMat;
+      torso.material = mats;
+    }
     let ph = Math.random() * 10;
     ud.animate = function (dt) {
       ph += dt * 13;

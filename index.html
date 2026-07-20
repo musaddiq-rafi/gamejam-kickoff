@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Kickoff Rush — Football Endless Runner</title>
+<title>Kickoff Rush ,  Football Endless Runner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
@@ -35,7 +35,7 @@
 <div class="penmap hidden" id="penMap">
   <div class="penmap-row">
     <span class="penmap-label">DISTANCE TO GOAL</span>
-    <span class="penmap-dist" id="penMapDist">—</span>
+    <span class="penmap-dist" id="penMapDist">, </span>
   </div>
   <div class="penmap-track" id="penMapTrack">
     <div class="penmap-fill" id="penMapFill"></div>
@@ -83,7 +83,7 @@
   <div class="theme-line theme-line-2">Every player starts somewhere.</div>
   <div class="theme-line theme-line-3">The cards are the lessons.</div>
   <div class="theme-line theme-line-4">Your run ends not when you lose,</div>
-  <div class="theme-line theme-line-5">but when you're sent off —</div>
+  <div class="theme-line theme-line-5">but when you're sent off , </div>
   <div class="theme-line theme-line-6">and then you kick off again.</div>
   <div class="theme-skip">Press SPACE to skip</div>
 </div>
@@ -94,7 +94,7 @@
   <div class="invis-bar"><div class="invis-fill" id="invisFill"></div></div>
 </div>
 
-<div class="fk-ready hidden" id="fkReady">⚽ KICKOFF BLAST READY — press SPACE</div>
+<div class="fk-ready hidden" id="fkReady">⚽ KICKOFF BLAST READY ,  press SPACE</div>
 
 <div class="freekick-banner hidden" id="freeKick">
   <div class="fk-1" id="fk1">KICKOFF BLAST!</div>
@@ -122,9 +122,9 @@
     <div class="help-cols">
     <div class="help-col">
       <div class="help-h">CONTROLS</div>
-      <div class="help-row"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lane</div>
-      <div class="help-row"><kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump</div>
-      <div class="help-row"><kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide</div>
+      <div class="help-row"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> ,  switch lane</div>
+      <div class="help-row"><kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> ,  jump</div>
+      <div class="help-row"><kbd>&darr;</kbd> / <kbd>S</kbd> ,  roll / slide</div>
     </div>
     <div class="help-col">
       <div class="help-h">HOW TO SCORE</div>
@@ -136,8 +136,6 @@
   <button class="btn" id="helpContinue">CONTINUE</button>
   <div class="keys">Press SPACE or click CONTINUE</div>
 </div>
-
-<div class="overlay hidden" id="worldScreen"></div>
 
 <div class="overlay hidden" id="overScreen">
   <div class="red-card-pop hidden" id="redCardPop">
@@ -160,18 +158,12 @@
   <div class="lb-title">LEADERBOARD</div>
   <ol class="leaderboard" id="leaderboard"></ol>
   <div class="over-theme">
-    <div class="ot-line">KICKOFF is the first step of every journey.</div>
-    <div class="ot-line">Every player starts somewhere.</div>
-    <div class="ot-line">The cards are the lessons.</div>
     <div class="ot-line">Your run ends not when you lose,</div>
-    <div class="ot-line">but when you're sent off —</div>
+    <div class="ot-line">but when you're sent off , </div>
     <div class="ot-line ot-highlight">and then you kick off again.</div>
   </div>
   <button class="btn" id="restartBtn" style="margin-top:8px;">PLAY AGAIN</button>
-  <button class="btn btn-ghost" id="changeWorldBtn" style="margin-top:6px;">CHANGE WORLD</button>
 </div>
-
-<div class="overlay hidden" id="mainMenu"></div>
 
 <div class="overlay hidden" id="optionsScreen">
   <div class="title">OPTIONS</div>
@@ -182,15 +174,13 @@
   </div>
   <div class="opt-help">
     <div class="help-h">CONTROLS</div>
-    <div class="help-row"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lane</div>
-    <div class="help-row"><kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump</div>
-    <div class="help-row"><kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide</div>
+    <div class="help-row"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> ,  switch lane</div>
+    <div class="help-row"><kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> ,  jump</div>
+    <div class="help-row"><kbd>&darr;</kbd> / <kbd>S</kbd> ,  roll / slide</div>
     <div class="help-row"><kbd>P</kbd> / <kbd>Esc</kbd> pause &nbsp;•&nbsp; <kbd>M</kbd> mute</div>
   </div>
   <button class="btn" id="optionsBack">BACK</button>
 </div>
-
-<div class="overlay hidden" id="customizeScreen"></div>
 
 <div class="overlay hidden" id="careerScreen">
   <div class="lobby-bg" style="background-image:url('assets/lobby_bg_main.png')"></div>
@@ -243,7 +233,7 @@
       <div class="lp-worlds">
         <div class="lp-world selected" data-world="beach">
           <div class="lp-world-thumb" style="background-image:url('assets/loading_bg_beach.png')"></div>
-          <div class="lp-world-flag">🏖️</div>
+          <div class="lp-world-flag">�, ️</div>
           <div class="lp-world-info">
             <div class="lp-world-name">BEACH</div>
             <div class="lp-world-sub">THE ROOTS</div>
@@ -278,7 +268,7 @@
 
   <!-- BOTTOM action bar -->
   <div class="lobby-actions">
-    <button class="lobby-btn lobby-play" id="careerPlay">▶ KICK OFF</button>
+    <button class="lobby-btn lobby-play" id="careerPlay">▶KICK OFF</button>
     <button class="lobby-btn" id="lobbyStory">STORY</button>
     <button class="lobby-btn" id="lobbyHowto">HOW TO PLAY</button>
     <button class="lobby-btn" id="lobbyOptions">OPTIONS</button>
@@ -309,31 +299,34 @@
   <div class="story-scroll">
 
     <header class="story-hero">
-      <img class="story-hero-img" src="assets/leonel_messi_childhood.png" alt="Lionel Messi as a child in Rosario" />
+      <figure class="story-hero-fig">
+        <img class="story-hero-img" src="assets/leonel_messi_childhood.png" alt="Lionel Messi as a child playing football" />
+        <figcaption>This is Lionel Messi, playing football as a child.</figcaption>
+      </figure>
       <div class="story-hero-eyebrow">A FOOTBALL LIFE JOURNEY</div>
       <h1 class="story-hero-title">FROM A ROSARIO BEACH<br>TO THE WORLD CUP</h1>
-      <p class="story-hero-sub">Inspired by Lionel Messi — the little boy from Argentina who kicked off a legend.</p>
+      <p class="story-hero-sub">Inspired by Lionel Messi, the little boy from Argentina who kicked off a legend.</p>
       <div class="story-scroll-hint">scroll to begin ↓</div>
     </header>
 
     <article class="story-chapter">
       <div class="chapter-num">01</div>
       <h2>The Kickoff</h2>
-      <p>Every great career starts with a single <b>kickoff</b> — the first touch, the first dream. Ours begins on the sandy riverbanks of <b>Rosario, Argentina</b>, where a small boy with a worn-out ball played barefoot against the wind off the Paraná.</p>
+      <p>Every great career starts with a single <b>kickoff</b> ,  the first touch, the first dream. Ours begins on the sandy riverbanks of <b>Rosario, Argentina</b>, where a small boy with a worn-out ball played barefoot against the wind off the Paran�.�.</p>
       <figure class="chapter-fig">
         <img src="assets/loading_bg_beach.png" alt="Rosario beach" loading="lazy" />
-        <figcaption>Rosario — where the journey begins.</figcaption>
+        <figcaption>Rosario ,  where the journey begins.</figcaption>
       </figure>
-      <p>No academy, no stadium. Just sand, a wall, and a thousand touches a day. That is where a footballer is really made — long before the lights.</p>
+      <p>No academy, no stadium. Just sand, a wall, and a thousand touches a day. That is where a footballer is really made ,  long before the lights.</p>
     </article>
 
     <article class="story-chapter">
       <div class="chapter-num">02</div>
       <h2>The Club</h2>
-      <p>Talent finds its way. The boy leaves home and crosses an ocean to <b>FC Barcelona</b>, the cathedral of football. Under the Camp Nou lights he learns that touch, vision and heart beat raw power. This is the <b>grind</b> — the years of training that turn a promise into a phenomenon.</p>
+      <p>Talent finds its way. The boy leaves home and crosses an ocean to <b>FC Barcelona</b>, the cathedral of football. Under the Camp Nou lights he learns that touch, vision and heart beat raw power. This is the <b>grind</b> ,  the years of training that turn a promise into a phenomenon.</p>
       <figure class="chapter-fig">
         <img src="assets/loading_bg_indoor.png" alt="FC Barcelona arena" loading="lazy" />
-        <figcaption>The club stage — where boys become legends.</figcaption>
+        <figcaption>The club stage ,  where boys become legends.</figcaption>
       </figure>
       <p class="chapter-note">Messi made his Barcelona first-team debut in 2004, aged 17, and went on to become the club's all-time top scorer.</p>
     </article>
@@ -341,18 +334,18 @@
     <article class="story-chapter">
       <div class="chapter-num">03</div>
       <h2>The World Cup Finals</h2>
-      <p>The peak. The <b>FIFA World Cup</b> — the loudest stage in sport, where a nation holds its breath. Here the journey comes full circle: the barefoot kid from Rosario, now wearing the number 10, chasing the one trophy that had always escaped him.</p>
+      <p>The peak. The <b>FIFA World Cup</b> ,  the loudest stage in sport, where a nation holds its breath. Here the journey comes full circle: the barefoot kid from Rosario, now wearing the number 10, chasing the one trophy that had always escaped him.</p>
       <figure class="chapter-fig">
         <img src="assets/loading_bg_worldcup.png" alt="World Cup finals" loading="lazy" />
-        <figcaption>The ultimate kickoff — a nation's dream.</figcaption>
+        <figcaption>The ultimate kickoff ,  a nation's dream.</figcaption>
       </figure>
-      <p class="chapter-note">In 2022, at last, the boy from Rosario lifted the World Cup — completing football's greatest career arc.</p>
+      <p class="chapter-note">In 2022, at last, the boy from Rosario lifted the World Cup ,  completing football's greatest career arc.</p>
     </article>
 
     <article class="story-chapter story-finale">
       <h2>Your Kickoff</h2>
-      <p><i>Kickoff Rush</i> is a tribute to that road: beach, club, World Cup — three arenas, one life. It is fiction, but the feeling is real. Every time you press play, you are that kid again, taking the first touch of a brand-new journey.</p>
-      <p class="story-sign">— KICKOFF RUSH</p>
+      <p><i>Kickoff Rush</i> is a tribute to that road: beach, club, World Cup ,  three arenas, one life. It is fiction, but the feeling is real. Every time you press play, you are that kid again, taking the first touch of a brand-new journey.</p>
+      <p class="story-sign">,  KICKOFF RUSH</p>
     </article>
 
   </div>
@@ -378,3 +371,5 @@
 <script src="js/game.js"></script>
 </body>
 </html>
+
+
