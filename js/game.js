@@ -260,6 +260,19 @@
   const introL2 = document.getElementById('introL2');
   const introL3 = document.getElementById('introL3');
   const themeScreen = document.getElementById('themeScreen');
+  const introSlides = document.getElementById('introSlides');
+  const isBg = document.getElementById('isBg');
+  const isPoem = document.getElementById('isPoem');
+  const isCard = document.getElementById('isCard');
+  const isEyebrow = document.getElementById('isEyebrow');
+  const isTitle = document.getElementById('isTitle');
+  const isText = document.getElementById('isText');
+  const isTag = document.getElementById('isTag');
+  const isDots = document.getElementById('isDots');
+  const isNext = document.getElementById('isNext');
+  const isSkip = document.getElementById('isSkip');
+  const isFact = document.getElementById('isFact');
+  const isFactText = document.getElementById('isFactText');
   const cardToastWrap = document.getElementById('cardToastWrap');
   const invisHud = document.getElementById('invisHud');
   const invisNum = document.getElementById('invisNum');
@@ -357,6 +370,8 @@
     scene.add(introOpp);
   }
 
+  let pendingIntro = false;
+
   function startGame(world) {
     hideAllOverlays();
     if (world) currentWorld = world;
@@ -368,12 +383,16 @@
     paused = false; pauseScreen.classList.add('hidden');
     overScreen.classList.add('hidden'); helpScreen.classList.add('hidden');
     document.getElementById('redCardPop').classList.add('hidden');
-    themeScreen.classList.remove('hidden');
-    state = 'theme';
-    themeScreen._autoTimer = setTimeout(() => { if (state === 'theme') beginIntro(); }, 6500);
+    if (pendingIntro) {
+      pendingIntro = false;
+      state = 'slides';
+      playIntroSlides(beginIntro);
+    } else {
+      beginIntro();
+    }
   }
   function beginIntro() {
-    if (state !== 'theme') return;
+    if (state === 'intro' || state === 'playing') return;
     clearTimeout(themeScreen._autoTimer);
     themeScreen.classList.add('hidden');
     state = 'intro';
@@ -389,6 +408,115 @@
     if (p && p.then) p.then(playKickoff); else playKickoff();
   }
   themeScreen.addEventListener('click', () => { if (state === 'theme') beginIntro(); });
+
+  // ---- skippable cinematic loading intro (images + text overlay, music, manual NEXT) ----
+  const INTRO_SLIDES = [
+    {
+      type: 'poem',
+      img: 'assets/leonel_messi_childhood.png',
+      lines: [
+        'KICKOFF is the first step of every journey.',
+        'Every player starts somewhere.',
+        'The cards are the lessons.',
+        'Your run ends not when you lose,',
+        'but when you’re sent off , ',
+        'and then you kick off again.'
+      ]
+    },
+    { type: 'chapter', side: 'left',  img: 'assets/loading_bg_beach.png',     eyebrow: 'CHAPTER 01 — THE ROOTS', title: 'THE KICKOFF',  text: 'Every great career starts with a single kickoff — the first touch, the first dream. Ours begins on the sandy riverbanks of Rosario, Argentina, where a small boy played barefoot against the wind off the Paraná.' },
+    { type: 'chapter', side: 'right', img: 'assets/loading_bg_indoor.png',    eyebrow: 'CHAPTER 02 — THE GRIND', title: 'THE CLUB',     text: 'Talent finds its way. The boy crosses an ocean to FC Barcelona, learning that touch, vision and heart beat raw power.', fact: 'Messi made his Barcelona first-team debut in 2004, aged 17, and went on to become the club’s all-time top scorer.' },
+    { type: 'chapter', side: 'left',  img: 'assets/loading_bg_worldcup.png',  eyebrow: 'CHAPTER 03 — THE PRIME', title: 'THE WORLD CUP', text: 'The peak. The loudest stage in sport, where a nation holds its breath and the barefoot kid from Rosario chases the one trophy that had always escaped him.', fact: 'In 2022, at last, the boy from Rosario lifted the World Cup — completing football’s greatest career arc.' },
+    { type: 'chapter', side: 'right', img: 'assets/lobby_bg_main.png',        eyebrow: 'KICKOFF RUSH',          title: 'YOUR KICKOFF', text: 'Every time you press play, you are that kid again, taking the first touch of a brand-new journey.' }
+  ];
+  const INTRO_SEEN_KEY = 'kickoff_intro_seen';
+  function introSeen() { try { return localStorage.getItem(INTRO_SEEN_KEY) === '1'; } catch (e) { return false; } }
+  function markIntroSeen() { try { localStorage.setItem(INTRO_SEEN_KEY, '1'); } catch (e) {} }
+
+  let slideIndex = 0, slideDone = null, slideActive = false;
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function buildDots() {
+    if (!isDots) return;
+    isDots.innerHTML = '';
+    INTRO_SLIDES.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'is-dot' + (i === 0 ? ' on' : '');
+      isDots.appendChild(d);
+    });
+  }
+  function showSlide(i) {
+    const s = INTRO_SLIDES[i];
+    const last = i === INTRO_SLIDES.length - 1;
+    isBg.style.backgroundImage = "url('" + s.img + "')";
+    introSlides.classList.remove('is-active');
+    void introSlides.offsetWidth;
+    introSlides.classList.add('is-active');
+    introSlides.classList.toggle('is-side-left', s.side === 'left');
+    introSlides.classList.toggle('is-side-right', s.side === 'right');
+    if (s.type === 'poem') {
+      isPoem.innerHTML = s.lines.map((t, idx) =>
+        '<div class="is-line' + (idx === s.lines.length - 1 ? ' is-line-final' : '') +
+        '" style="animation-delay:' + (0.35 + idx * 0.5) + 's">' + t + '</div>'
+      ).join('');
+      isPoem.classList.remove('hidden');
+      isCard.classList.add('hidden');
+      if (isFact) isFact.classList.add('hidden');
+    } else {
+      isEyebrow.textContent = s.eyebrow;
+      isTitle.textContent = s.title;
+      isText.textContent = s.text;
+      if (isFact && isFactText) {
+        if (s.fact) { isFactText.textContent = s.fact; isFact.classList.remove('hidden'); }
+        else { isFact.classList.add('hidden'); }
+      }
+      isCard.classList.remove('hidden', 'is-left', 'is-right');
+      isCard.classList.add(s.side === 'right' ? 'is-right' : 'is-left');
+      isPoem.classList.add('hidden');
+      introSlides.classList.remove('is-text-in');
+      void introSlides.offsetWidth;
+      introSlides.classList.add('is-text-in');
+    }
+    if (isTag) isTag.textContent = 'STORY · ' + pad2(i + 1) + ' / ' + pad2(INTRO_SLIDES.length);
+    if (isNext) isNext.innerHTML = last ? 'START &#9656;' : 'NEXT &#9656;';
+    if (isDots) {
+      Array.from(isDots.children).forEach((d, idx) => d.classList.toggle('on', idx === i));
+    }
+  }
+  function finishSlides() {
+    if (!slideActive) return;
+    slideActive = false;
+    markIntroSeen();
+    introSlides.classList.add('hidden');
+    introSlides.classList.remove('is-active', 'is-text-in', 'is-side-left', 'is-side-right');
+    const cb = slideDone; slideDone = null;
+    if (cb) cb();
+  }
+  function nextSlide() {
+    if (!slideActive) return;
+    if (slideIndex >= INTRO_SLIDES.length - 1) { finishSlides(); return; }
+    slideIndex++;
+    showSlide(slideIndex);
+  }
+  function playIntroSlides(onDone) {
+    slideDone = onDone;
+    slideActive = true;
+    slideIndex = 0;
+    buildDots();
+    showOverlay(introSlides);
+    K.Audio.init();
+    const p = K.Audio.resume();
+    const startMusic = () => K.Audio.startMusic();
+    if (p && p.then) p.then(startMusic); else startMusic();
+    showSlide(0);
+  }
+  function skipSlides() { if (slideActive) finishSlides(); }
+  if (isSkip) isSkip.addEventListener('click', skipSlides);
+  if (isNext) isNext.addEventListener('click', nextSlide);
+  window.addEventListener('keydown', (e) => {
+    if (!slideActive) return;
+    if (e.code === 'Escape') { e.preventDefault(); skipSlides(); }
+    else if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') { e.preventDefault(); nextSlide(); }
+  });
 
   function redCard() {
     showBanner('RED CARD!', 'Sent off — game over', 'red');
@@ -1304,7 +1432,7 @@
   const careerBack = document.getElementById('careerBack');
   if (careerBack) careerBack.addEventListener('click', openReset);
   const careerPlay = document.getElementById('careerPlay');
-  if (careerPlay) careerPlay.addEventListener('click', () => { saveCareer(); startWithLoad(); });
+    if (careerPlay) careerPlay.addEventListener('click', () => { saveCareer(); pendingIntro = !introSeen(); startWithLoad(); });
   const resetBtns = document.querySelectorAll('[data-reset]');
   resetBtns.forEach(b => b.addEventListener('click', openReset));
   const resetFactoryBtn = document.getElementById('resetFactoryBtn');
