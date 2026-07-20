@@ -79,9 +79,9 @@ On both the **Career** and **Customize** screens you set your **name** + **jerse
 stats) — no real-player presets. Your name + number are baked onto the jersey.
 
 ### Reset progress
-A **RESET PROGRESS** button lives in the **pause menu** and the **main menu**. It opens a choice:
-- **Reset career** — clears unlocks + lifetime stats (keeps the leaderboard).
-- **Factory reset** — also clears the local top-5 leaderboard.
+A **RESET PROGRESS** button lives in the **pause menu** and the **main menu**. It opens a confirmation
+popup warning that all progress and `localStorage` data will be cleared. Confirming does a **full factory
+reset** — clears unlocks, lifetime stats, and the local top-5 leaderboard.
 
 `localStorage` keys: `kickoff_career` (unlocks + identity + lifetime stats) and
 `kickoff_leaderboard` (top-5). A run's RED CARD ends the run but **never** resets your career progress.

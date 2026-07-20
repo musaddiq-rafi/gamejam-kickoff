@@ -1,0 +1,55 @@
+HOW TO PLAY — KICKOFF RUSH
+==========================
+
+Kickoff Rush is a 3-lane endless runner football game built with HTML5 + Three.js.
+No build step is required.
+
+
+HOW TO RUN (LOCAL)
+------------------
+1. Get the code:
+   - Clone the repo:
+       git clone https://github.com/musaddiq-rafi/gamejam-kickoff.git
+   - Or download it as a ZIP from GitHub and extract the folder.
+
+2. Open the game:
+   - Easiest: double-click "index.html" to open it in a modern web browser.
+   - Or serve it locally (recommended):
+       python -m http.server 8000
+       then visit  http://localhost:8000
+     (or:  npx serve .)
+
+   NOTE: Three.js is loaded from a CDN, so you need an internet connection on first load.
+
+
+CONTROLS
+--------
+Switch lane .... Arrow Left / Right  or  A / D   (swipe left / right on touch)
+Jump ........... Arrow Up / W / Space            (swipe up)
+Roll / slide ... Arrow Down / S                  (swipe down)
+KICKOFF BLAST .. Space (when the meter is ready)
+Penalty shot ... Space (during Goal Chance aim)
+Pause .......... P / Esc
+Mute ........... M
+Restart ........ R
+
+
+GOAL OF THE GAME
+----------------
+Dribble the ball down an endless pitch, dodge rival players and keepers, collect
+gold stars, and survive the referee's cards. Build combos, charge the KICKOFF
+BLAST, and beat the keeper in Goal Chance penalties.
+
+- You have 2 lives shown as green cards. A hit = yellow card; a second hit = red
+  card and the run ends.
+- Collect 100 stars to charge a KICKOFF BLAST (press Space to become invincible).
+- Reach distance milestones to trigger a Goal Chance penalty.
+
+
+MENU BUTTONS
+------------
+DEMO ....... Unlocks all worlds for testing (shows a fair-play notice first).
+RESET ...... Clears ALL progress and local storage data (with a confirmation).
+
+
+Have fun and score some goals!  ⚽
