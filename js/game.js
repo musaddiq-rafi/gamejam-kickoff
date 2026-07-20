@@ -1146,6 +1146,13 @@
   if (storyBack) storyBack.addEventListener('click', showCareer);
   const lobbyDemo = document.getElementById('lobbyDemo');
   if (lobbyDemo) lobbyDemo.addEventListener('click', () => {
+    const m = document.getElementById('demoModal');
+    if (m) m.classList.remove('hidden');
+  });
+  const demoUseBtn = document.getElementById('demoUseBtn');
+  if (demoUseBtn) demoUseBtn.addEventListener('click', () => {
+    const m = document.getElementById('demoModal');
+    if (m) m.classList.add('hidden');
     career.unlocked = LEVELS.length;
     lastUnlocked = career.unlocked;
     career.newLevel = 0;
@@ -1153,6 +1160,11 @@
     renderCareerStats();
     applyUnlocks();
     showBanner('DEMO MODE', 'All worlds unlocked — go explore!', 'green');
+  });
+  const demoCloseBtn = document.getElementById('demoCloseBtn');
+  if (demoCloseBtn) demoCloseBtn.addEventListener('click', () => {
+    const m = document.getElementById('demoModal');
+    if (m) m.classList.add('hidden');
   });
 
   // ---- identity inputs (Customize + Career share the same career object) ----
@@ -1279,8 +1291,6 @@
   if (careerPlay) careerPlay.addEventListener('click', () => { saveCareer(); startWithLoad(); });
   const resetBtns = document.querySelectorAll('[data-reset]');
   resetBtns.forEach(b => b.addEventListener('click', openReset));
-  const resetCareerBtn = document.getElementById('resetCareerBtn');
-  if (resetCareerBtn) resetCareerBtn.addEventListener('click', () => doReset(false));
   const resetFactoryBtn = document.getElementById('resetFactoryBtn');
   if (resetFactoryBtn) resetFactoryBtn.addEventListener('click', () => doReset(true));
   const resetCancel = document.getElementById('resetCancel');
