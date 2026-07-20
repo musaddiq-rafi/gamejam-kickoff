@@ -697,6 +697,12 @@ canvas { display: block; }
   text-shadow: 0 2px 8px rgba(0,0,0,.8);
 }
 .lp-world-sub { font-size: 9px; font-weight: 700; letter-spacing: 3px; color: rgba(155,230,160,.85); margin-top: 2px; }
+.lp-world-speed {
+  position: relative; z-index: 2;
+  font-size: 9px; font-weight: 800; letter-spacing: 1.2px;
+  color: #7fd3ff; text-align: right; margin-top: 2px;
+}
+.lp-world.selected .lp-world-speed { color: #43e07a; }
 .lp-world-status {
   position: relative; z-index: 2;
   font-size: 9px; font-weight: 800; letter-spacing: .4px;

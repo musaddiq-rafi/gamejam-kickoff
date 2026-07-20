@@ -38,11 +38,11 @@
     2: { goals: 3,  m: 2000, stars: 200 },   // Indoor  — "The Grind"
     3: { goals: 8,  m: 5000, stars: 600 }    // World Cup — "The Prime"
   };
-  // Gentle per-level difficulty ramp (speed mult + spawn density mult).
+  // Per-level difficulty ramp (speed mult + spawn density mult).
   const DIFFICULTY = {
     beach:    { speed: 1.00, density: 1.00 },
-    indoor:   { speed: 1.12, density: 1.20 },
-    worldcup: { speed: 1.22, density: 1.35 }
+    indoor:   { speed: 1.20, density: 1.20 },
+    worldcup: { speed: 1.40, density: 1.40 }
   };
 
   // Generic kits (colour selection only — no real players). Each has its own balanced stats.
@@ -1215,6 +1215,11 @@
       row.classList.toggle('locked', locked);
       const st = row.querySelector('.lp-world-status');
       if (st) st.textContent = locked ? reqText(lvl) : 'UNLOCKED';
+      const sp = row.querySelector('.lp-world-speed');
+      if (sp) {
+        const mult = (DIFFICULTY[w] && DIFFICULTY[w].speed) || 1;
+        sp.textContent = 'SPEED ' + mult.toFixed(1) + 'x';
+      }
       row.classList.toggle('selected', w === currentWorld && !locked);
     });
     document.querySelectorAll('.lp-kit-card').forEach(c => {
