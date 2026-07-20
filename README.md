@@ -25,14 +25,18 @@ and the path every footballer walks from the first whistle to the final card.
 - **Referee card system (lives = cards)** — 2 lives shown as real green cards in the HUD. A foul = **YELLOW CARD**,
   a second = **RED CARD** (sent off). A **GREEN CARD** power-up restores a life and keeps you a safe player.
 - **Four power-ups**: SPEED, GOLDEN BOOT (star magnet), SHIELD, and the GREEN CARD.
-- **Three themed worlds** — World Cup stadium, Beach, and Indoor arena — that swap scenery + lighting.
+- **Three themed worlds as a career "life journey"** — **Beach → Indoor → World Cup**
+  (The Roots → The Grind → The Prime) that swap scenery + lighting and unlock by
+  lifetime progression (see [Career](#-career--level-unlock)).
 - **Charging rivals** that chase and cut across lanes, plus a wide **Goalkeeper** in the Penalty Box.
 - **Goal Chance penalty phase** — a slow-mo cinematic lead-in, an aiming marker, and a keeper you must beat.
 - **KICKOFF BLAST** — a charged, invincible power run unlocked every 100 stars.
 - **Cinematic kickoff**: overhead kickoff with player + rival + referee whistle, then an eased drop into chase cam.
 - **Living galleries**: instanced stickman crowds, flag-wavers, and random support messages after 25 m.
 - **Procedural audio** (Web Audio API): whistle, jump, roll, star, crash, kick, goal fanfare, combo jingles, and a looping chant.
-- **8 legendary players** with per-team stat tuning (speed / star value / combo window / blast duration).
+- **5 generic kits** (Red Devils, Blue Lions, Golden Eagles, Black Panthers, Rainbow FC) with their own
+  balanced stats — pick a kit colour, not a real player. Plus an editable **player name + jersey number**
+  (default #10) shown on the pitch.
 - **Touch + keyboard** controls, pause menu, volume sliders, and a local top-5 leaderboard.
 - **Post-processing**: UnrealBloom + vignette + FXAA; camera shake, FOV punch, and slow-motion juice.
 
@@ -48,6 +52,39 @@ and the path every footballer walks from the first whistle to the final card.
 
 > The world is chosen on the World Screen and can be changed from the game-over / pause menus.
 > Worlds only change scenery and lighting — gameplay is identical across all three.
+
+---
+
+## 🏆 Career — Level Unlock
+
+KICKOFF is the first step of every journey. The three worlds form a footballer's **life journey**,
+unlocked by **lifetime cumulative stats** (persisted in `localStorage`):
+
+| Level | World | Meaning | Unlock (all three required) |
+|-------|-------|---------|------------------------------|
+| 1 | **Beach** | The Roots — where it started | Available from start |
+| 2 | **Indoor** | The Grind — hard years | 3 lifetime goals **AND** 2000 m **AND** 200 ⭐ |
+| 3 | **World Cup** | The Prime — he made it | 8 lifetime goals **AND** 5000 m **AND** 600 ⭐ |
+
+- When you cross a threshold **mid-run**, a **non-interrupting toast** celebrates the unlock
+  (*"LEVEL 2 UNLOCKED!"*) — you keep running.
+- On the **World Screen**, locked maps show 🔒 + *"Reach …"*; a freshly unlocked map shows a **NEW!** badge.
+- A **Career screen** (Main Menu → CAREER) shows your 3D player on one side and your lifetime
+  Goals / Distance / Stars + per-level progress on the other.
+- Each world adds a **gentle difficulty ramp** (Indoor +~12% speed / +20% density; World Cup +~22% / +35%).
+
+### Player identity & kits
+On both the **Career** and **Customize** screens you set your **name** + **jersey number**
+(default **#10**). You also pick one of **5 generic kits** (colour-based, each with its own balanced
+stats) — no real-player presets. Your name + number are baked onto the jersey.
+
+### Reset progress
+A **RESET PROGRESS** button lives in the **pause menu** and the **main menu**. It opens a choice:
+- **Reset career** — clears unlocks + lifetime stats (keeps the leaderboard).
+- **Factory reset** — also clears the local top-5 leaderboard.
+
+`localStorage` keys: `kickoff_career` (unlocks + identity + lifetime stats) and
+`kickoff_leaderboard` (top-5). A run's RED CARD ends the run but **never** resets your career progress.
 
 ---
 

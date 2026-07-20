@@ -68,6 +68,7 @@
   <button class="btn btn-ghost" id="pauseWorld">CHANGE WORLD</button>
   <button class="btn btn-ghost" id="pauseMenu">MAIN MENU</button>
   <button class="btn btn-ghost" id="muteBtn">MUTE</button>
+  <button class="btn btn-ghost" data-reset>RESET PROGRESS</button>
 </div>
 
 <div class="intro-banner hidden" id="introBanner">
@@ -136,34 +137,7 @@
   <div class="keys">Press SPACE or click CONTINUE</div>
 </div>
 
-<div class="overlay hidden" id="worldScreen">
-  <div class="title">KICKOFF RUSH</div>
-  <div class="subtitle">Pick your arena. Dodge rival players, jump the goalkeeper's save, and collect stars. How far can you dribble?</div>
-  <div class="world-cards">
-    <div class="world-card selected" data-world="worldcup">
-      <div class="wc-emoji">🏟️</div>
-      <div class="wc-name">WORLD CUP</div>
-      <div class="wc-desc">A roaring open stadium — cheering crowds wave placards under the floodlights.</div>
-    </div>
-    <div class="world-card" data-world="beach">
-      <div class="wc-emoji">🏖️</div>
-      <div class="wc-name">BEACH</div>
-      <div class="wc-desc">A sandy pitch by the sea, palms and umbrellas, with the sun glowing on the waves.</div>
-    </div>
-    <div class="world-card" data-world="indoor">
-      <div class="wc-emoji">🏟️</div>
-      <div class="wc-name">INDOOR</div>
-      <div class="wc-desc">A enclosed arena under the roof — close stands, bright spotlights and a scoreboard.</div>
-    </div>
-  </div>
-  <div class="playing-as" id="playingAs">PLAYING AS</div>
-  <div class="kickoff-prompt">PRESS SPACE TO KICK OFF</div>
-  <div class="keys">
-    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> or <kbd>A</kbd> <kbd>D</kbd> — switch lanes<br/>
-    <kbd>&uarr;</kbd> / <kbd>Space</kbd> / <kbd>W</kbd> — jump &nbsp;•&nbsp; <kbd>&darr;</kbd> / <kbd>S</kbd> — roll / slide<br/>
-    On touch: swipe to move, swipe up to jump, swipe down to roll &nbsp;•&nbsp; <kbd>M</kbd> mute &nbsp;•&nbsp; <kbd>R</kbd> restart
-  </div>
-</div>
+<div class="overlay hidden" id="worldScreen"></div>
 
 <div class="overlay hidden" id="overScreen">
   <div class="red-card-pop hidden" id="redCardPop">
@@ -197,17 +171,7 @@
   <button class="btn btn-ghost" id="changeWorldBtn" style="margin-top:6px;">CHANGE WORLD</button>
 </div>
 
-<div class="overlay hidden" id="mainMenu">
-  <div class="mm-logo">⚽ KICKOFF RUSH</div>
-  <div class="mm-tag">ENDLESS FOOTBALL RUNNER</div>
-  <div class="mm-buttons">
-    <button class="btn mm-btn" id="startBtn">START GAME</button>
-    <button class="btn btn-ghost mm-btn" id="optionsBtn">OPTIONS</button>
-    <button class="btn btn-ghost mm-btn" id="customizeBtn">CUSTOMIZE</button>
-    <button class="btn btn-ghost mm-btn" id="exitBtn">EXIT</button>
-  </div>
-  <button class="mm-howto" id="howtoBtn">HOW TO PLAY</button>
-</div>
+<div class="overlay hidden" id="mainMenu"></div>
 
 <div class="overlay hidden" id="optionsScreen">
   <div class="title">OPTIONS</div>
@@ -226,21 +190,110 @@
   <button class="btn" id="optionsBack">BACK</button>
 </div>
 
-<div class="overlay hidden" id="customizeScreen">
-  <div class="title">CUSTOMIZE</div>
-  <div class="subtitle">Choose your player — their kit, number and name appear on the pitch.</div>
-  <div class="cust-body">
-    <div class="cust-preview">
-      <canvas id="previewCanvas" width="240" height="310"></canvas>
-      <div class="cust-info">
-        <div class="cust-name" id="custName">L. MESSI</div>
-        <div class="cust-num" id="custNum">#10</div>
-        <div class="cust-country" id="custCountry">ARGENTINA</div>
+<div class="overlay hidden" id="customizeScreen"></div>
+
+<div class="overlay hidden" id="careerScreen">
+  <div class="lobby-bg" style="background-image:url('assets/lobby_bg_main.png')"></div>
+  <div class="lobby-scrim"></div>
+  <div class="lobby-grain"></div>
+
+  <!-- LEFT: player showcase -->
+  <div class="lobby-left">
+    <div class="lobby-logo">⚽ KICKOFF RUSH</div>
+    <div class="lobby-stage">
+      <div class="lobby-spot"></div>
+      <canvas id="careerCanvas" width="360" height="480"></canvas>
+    </div>
+    <div class="lobby-player-name" id="careerNameVal">PLAYER #10</div>
+    <div class="lobby-player-kit" id="careerKitVal">RED DEVILS</div>
+
+    <div class="lpanel lobby-id">
+      <div class="lp-label">PLAYER ID</div>
+      <div class="lp-row">
+        <input type="text" id="careerNameInput" maxlength="12" placeholder="PLAYER" class="lp-input" />
+        <input type="number" id="careerNumInput" min="0" max="99" value="10" class="lp-input lp-num" />
       </div>
     </div>
-    <div class="cust-list" id="playerList"></div>
+
+    <div class="lpanel lobby-id">
+      <div class="lp-label">SELECT KIT</div>
+      <div class="lp-kit-row" id="kitList"></div>
+    </div>
   </div>
-  <button class="btn" id="custBack">BACK</button>
+
+  <!-- RIGHT: career stats + arenas -->
+  <div class="lobby-right">
+
+    <div class="lobby-hdr">
+      <div class="lobby-title">CAREER</div>
+      <div class="lobby-tag">LIFE JOURNEY · pick your arena</div>
+    </div>
+
+    <div class="lpanel">
+      <div class="lp-label">LIFETIME STATS</div>
+      <div class="lp-stats">
+        <div class="lp-stat"><span class="lp-stat-v" id="careerGoals">0</span><span class="lp-stat-l">GOALS</span></div>
+        <div class="lp-stat"><span class="lp-stat-v" id="careerDist">0 m</span><span class="lp-stat-l">DISTANCE</span></div>
+        <div class="lp-stat"><span class="lp-stat-v" id="careerStars">0 ⭐</span><span class="lp-stat-l">STARS</span></div>
+      </div>
+    </div>
+
+    <div class="lpanel">
+      <div class="lp-label">SELECT ARENA</div>
+      <div class="lp-worlds">
+        <div class="lp-world selected" data-world="beach">
+          <div class="lp-world-thumb" style="background-image:url('assets/loading_bg_beach.png')"></div>
+          <div class="lp-world-flag">🏖️</div>
+          <div class="lp-world-info">
+            <div class="lp-world-name">BEACH</div>
+            <div class="lp-world-sub">THE ROOTS</div>
+          </div>
+          <div class="lp-world-status"></div>
+          <div class="lp-world-lock">🔒</div>
+        </div>
+        <div class="lp-world" data-world="indoor">
+          <div class="lp-world-thumb" style="background-image:url('assets/loading_bg_indoor.png')"></div>
+          <div class="lp-world-flag">🏟️</div>
+          <div class="lp-world-info">
+            <div class="lp-world-name">INDOOR</div>
+            <div class="lp-world-sub">THE GRIND</div>
+          </div>
+          <div class="lp-world-status"></div>
+          <div class="lp-world-lock">🔒</div>
+        </div>
+        <div class="lp-world" data-world="worldcup">
+          <div class="lp-world-thumb" style="background-image:url('assets/loading_bg_worldcup.png')"></div>
+          <div class="lp-world-flag">🏟️</div>
+          <div class="lp-world-info">
+            <div class="lp-world-name">WORLD CUP</div>
+            <div class="lp-world-sub">THE PRIME</div>
+          </div>
+          <div class="lp-world-status"></div>
+          <div class="lp-world-lock">🔒</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM action bar -->
+  <div class="lobby-actions">
+    <button class="lobby-btn lobby-play" id="careerPlay">▶ KICK OFF</button>
+    <button class="lobby-btn" id="lobbyHowto">HOW TO PLAY</button>
+    <button class="lobby-btn" id="lobbyOptions">OPTIONS</button>
+    <button class="lobby-btn" id="lobbyDemo">DEMO</button>
+    <button class="lobby-btn lobby-back" id="careerBack">RESET</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="resetModal">
+  <div class="reset-box">
+    <div class="title" style="font-size:30px;">RESET PROGRESS</div>
+    <div class="subtitle">Choose what to clear. Your career progress is saved locally in this browser.</div>
+    <button class="btn btn-ghost" id="resetCareerBtn">RESET CAREER (keep scores)</button>
+    <button class="btn btn-ghost" id="resetFactoryBtn">FACTORY RESET (clear all)</button>
+    <button class="btn" id="resetCancel">CANCEL</button>
+  </div>
 </div>
 
 <div class="overlay hidden" id="farewellScreen">

@@ -1,4 +1,5 @@
 // stars.js — collectible stars (replaces trophies as the pickup).
+// Pooled + shared geometry/material so dense tracks never allocate mid-run.
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
 
@@ -19,26 +20,44 @@
     return geo;
   }
 
+  const GEO = starGeometry();
+  const MAT = new THREE.MeshStandardMaterial({
+    color: 0xf2d06b, metalness: 0.0, roughness: 0.7, flatShading: true,
+    emissive: 0xf2a03c, emissiveIntensity: 0.5
+  });
+
+  const pool = [];
+  function acquire() {
+    let g = pool.pop();
+    if (!g) {
+      const star = new THREE.Mesh(GEO, MAT);
+      star.castShadow = true;
+      g = new THREE.Group();
+      g.add(star);
+      g.userData.starMesh = star;
+    }
+    g.visible = true;
+    return g;
+  }
+
   function create() {
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0xf2d06b, metalness: 0.0, roughness: 0.7, flatShading: true,
-      emissive: 0xf2a03c, emissiveIntensity: 0.5
-    });
-    const star = new THREE.Mesh(starGeometry(), mat);
-    star.castShadow = true;
-    const g = new THREE.Group();
-    g.add(star);
-    g.userData = { type: 'star', z: 0, lane: 0, taken: false };
-    
+    const g = acquire();
+    const ud = g.userData;
+    ud.type = 'star'; ud.z = 0; ud.lane = 0; ud.taken = false;
     let ph = Math.random() * Math.PI;
-    g.userData.animate = function(dt) {
+    ud.animate = function (dt) {
       ph += dt * 3;
-      star.rotation.y += dt * 2.5;
-      star.position.y = Math.sin(ph) * 0.15;
-      mat.emissiveIntensity = 0.5 + Math.sin(ph * 2) * 0.3;
+      const s = g.userData.starMesh;
+      s.rotation.y += dt * 2.5;
+      s.position.y = Math.sin(ph) * 0.15;
+      MAT.emissiveIntensity = 0.5 + Math.sin(ph * 2) * 0.3;
     };
     return g;
   }
 
-  K.Star = { create };
+  function release(o) {
+    if (o) { o.userData.animate = null; o.visible = false; pool.push(o); }
+  }
+
+  K.Star = { create, release };
 })();

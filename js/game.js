@@ -1,6 +1,22 @@
 // game.js — orchestrates scene, player, opponents, input, loop and HUD.
 (function () {
   const K = (window.Kickoff = window.Kickoff || {});
+
+  // Surface any runtime error on screen instead of an infinite loading spinner.
+  function showFatal(msg) {
+    const t = document.getElementById('loadingText');
+    const ring = document.querySelector('.loader-ring');
+    if (ring) ring.style.display = 'none';
+    if (t) { t.textContent = 'ERROR: ' + msg; t.style.color = '#ff6b6b'; t.style.whiteSpace = 'pre-wrap'; }
+    const ls = document.getElementById('loadingScreen');
+    if (ls) { ls.classList.remove('hidden'); ls.style.display = 'flex'; }
+  }
+  window.addEventListener('error', e => {
+    showFatal((e && e.message ? e.message : 'unknown') + (e && e.filename ? '\n@ ' + e.filename + ':' + e.lineno : ''));
+  });
+  window.addEventListener('unhandledrejection', e => {
+    showFatal('promise: ' + (e && e.reason ? (e.reason.message || e.reason) : 'unknown'));
+  });
   const LANES = [-2.4, 0, 2.4];
   const GRAVITY = -42, JUMP_V = 15, ROLL_TIME = 0.55;
   const PLAYER_Z = 0, BASE_SPEED = 18, DESPAWN_Z = 14;
@@ -13,23 +29,74 @@
   const CAM_INTRO_POS = new THREE.Vector3(0, 22, 11);
   const CAM_INTRO_LOOK = new THREE.Vector3(0, 0, -3);
 
-  const PLAYERS = {
-    messi:    { name: 'MESSI',     full: 'Lionel Messi',    number: 10, country: 'ARGENTINA', jersey: 0x6ca6e0, shorts: 0xf2f2f2, skin: 0xf2c79a, speed: 1.05, star: 1.0, combo: 1.0, blast: 5, shieldStart: false },
-    ronaldo:  { name: 'RONALDO',   full: 'Cristiano Ronaldo', number: 7, country: 'PORTUGAL', jersey: 0xc8102e, shorts: 0x0a3a1f, skin: 0xe8b487, speed: 1.0,  star: 1.0, combo: 1.0, blast: 6, shieldStart: false },
-    neymar:   { name: 'NEYMAR',    full: 'Neymar Jr',       number: 10, country: 'BRAZIL',    jersey: 0xfcd116, shorts: 0x1d3a8f, skin: 0xcf9b6b, speed: 1.0,  star: 1.0, combo: 1.6, blast: 5, shieldStart: false },
-    mbappe:   { name: 'MBAPPÉ',    full: 'Kylian Mbappé',   number: 10, country: 'FRANCE',    jersey: 0x0055a4, shorts: 0xffffff, skin: 0xb07a44, speed: 1.05, star: 1.0, combo: 1.0, blast: 5, shieldStart: false },
-    salah:    { name: 'M. SALAH',  full: 'Mohamed Salah',   number: 10, country: 'EGYPT',     jersey: 0xc8102e, shorts: 0xffffff, skin: 0x8a5a30, speed: 1.0,  star: 1.1, combo: 1.0, blast: 5, shieldStart: false },
-    kane:     { name: 'KANE',      full: 'Harry Kane',      number: 9,  country: 'ENGLAND',   jersey: 0xffffff, shorts: 0x1d3a8f, skin: 0xe8b487, speed: 1.0,  star: 1.0, combo: 1.0, blast: 5, shieldStart: false },
-    haaland:  { name: 'HAALAND',   full: 'Erling Haaland',  number: 9,  country: 'NORWAY',    jersey: 0xd61f26, shorts: 0x00205b, skin: 0xe8b487, speed: 1.0,  star: 1.0, combo: 1.0, blast: 6, shieldStart: false },
-    modric:   { name: 'MODRIC',    full: 'Luka Modrić',     number: 10, country: 'CROATIA',  jersey: 0xd11f2d, shorts: 0xffffff, skin: 0xe8b487, speed: 1.0,  star: 1.0, combo: 1.6, blast: 5, shieldStart: false }
+  // ---- Career / level progression ----
+  // The 3 worlds form a footballer's "life journey" (career order).
+  const LEVELS = ['beach', 'indoor', 'worldcup'];
+  const LEVEL_NAMES = { beach: 'THE ROOTS', indoor: 'THE GRIND', worldcup: 'THE PRIME' };
+  // A level N unlocks when ALL three LIFETIME requirements are met.
+  const UNLOCK_REQ = {
+    2: { goals: 3,  m: 2000, stars: 200 },   // Indoor  — "The Grind"
+    3: { goals: 8,  m: 5000, stars: 600 }    // World Cup — "The Prime"
   };
-  let selectedPlayer = 'messi';
+  // Gentle per-level difficulty ramp (speed mult + spawn density mult).
+  const DIFFICULTY = {
+    beach:    { speed: 1.00, density: 1.00 },
+    indoor:   { speed: 1.12, density: 1.20 },
+    worldcup: { speed: 1.22, density: 1.35 }
+  };
+
+  // Generic kits (colour selection only — no real players). Each has its own balanced stats.
+  const KITS = {
+    red:    { key: 'red',    label: 'RED DEVILS',    jersey: 0xc8102e, shorts: 0xf2f2f2, skin: 0xe8b487, speed: 1.05, star: 1.0, combo: 1.0, blast: 5, shieldStart: false },
+    blue:   { key: 'blue',   label: 'BLUE LIONS',    jersey: 0x2d4a6b, shorts: 0x111418, skin: 0xb07a44, speed: 1.00, star: 1.0, combo: 1.0, blast: 6, shieldStart: false },
+    gold:   { key: 'gold',   label: 'GOLDEN EAGLES', jersey: 0xe0a63c, shorts: 0x111418, skin: 0xcf9b6b, speed: 1.05, star: 1.1, combo: 1.0, blast: 5, shieldStart: false },
+    black:  { key: 'black',  label: 'BLACK PANTHERS',jersey: 0x222831, shorts: 0xf2f2f2, skin: 0xe8b487, speed: 1.00, star: 1.0, combo: 1.6, blast: 5, shieldStart: false },
+    rainbow:{ key: 'rainbow',label: 'PINK STORM',    jersey: 0xff1493, shorts: 0x101820, skin: 0xcf9b6b, speed: 1.03, star: 1.0, combo: 1.3, blast: 6, shieldStart: false }
+  };
+
+  // ---- persistent career state (localStorage) ----
+  const CAREER_KEY = 'kickoff_career';
+  const LB_KEY = 'kickoff_leaderboard';
+  function defaultCareer() {
+    return { unlocked: 1, lifetimeGoals: 0, lifetimeM: 0, lifetimeStars: 0, newLevel: 0,
+             name: 'PLAYER', number: 10, kit: 'red' };
+  }
+  function loadCareer() {
+    try {
+      const raw = localStorage.getItem(CAREER_KEY);
+      if (!raw) return defaultCareer();
+      const c = Object.assign(defaultCareer(), JSON.parse(raw));
+      if (LEVELS.indexOf(c.kit) < 0) c.kit = 'red';
+      c.number = Math.max(0, Math.min(99, parseInt(c.number, 10) || 0));
+      c.name = (c.name || 'PLAYER').toString().slice(0, 12).toUpperCase();
+      return c;
+    } catch (e) { return defaultCareer(); }
+  }
+  function saveCareer() { try { localStorage.setItem(CAREER_KEY, JSON.stringify(career)); } catch (e) {} }
+  function loadLeaderboard() {
+    try { const raw = localStorage.getItem(LB_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; }
+  }
+  function saveLeaderboard() { try { localStorage.setItem(LB_KEY, JSON.stringify(leaderboard)); } catch (e) {} }
+
+  let career = loadCareer();
+  function currentKit() { return KITS[career.kit] || KITS.red; }
 
   const container = document.getElementById('game');
+
+  // ---- adaptive quality: target buttery-smooth on the weakest hardware ----
+  // Anything with few cores / low DPR / mobile / small screen is treated as low-end.
+  const cores = navigator.hardwareConcurrency || 4;
+  const LOW_END = cores <= 4 || (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+                  /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 900;
+  const PIXEL_CAP = LOW_END ? 1.0 : Math.min(window.devicePixelRatio, 1.25);
+  const SHADOWS = !LOW_END;          // shadows are the single most expensive feature
+  const USE_FXAA = !LOW_END;         // FXAA is a full extra full-screen pass
+  const BLOOM_SCALE = LOW_END ? 0.25 : 0.5;
+
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  renderer.shadowMap.enabled = true;
+  renderer.setPixelRatio(PIXEL_CAP);
+  renderer.shadowMap.enabled = SHADOWS;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
@@ -44,11 +111,13 @@
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff6e6, 1.35);
   sun.position.set(14, 34, 12);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
-  sun.shadow.camera.near = 1; sun.shadow.camera.far = 90;
-  sun.shadow.camera.left = -25; sun.shadow.camera.right = 25;
-  sun.shadow.camera.top = 35; sun.shadow.camera.bottom = -35;
+  sun.castShadow = SHADOWS;
+  if (SHADOWS) {
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.near = 1; sun.shadow.camera.far = 90;
+    sun.shadow.camera.left = -25; sun.shadow.camera.right = 25;
+    sun.shadow.camera.top = 35; sun.shadow.camera.bottom = -35;
+  }
   scene.add(sun);
 
   const LIGHTING = {
@@ -60,7 +129,7 @@
     const L = LIGHTING[world] || LIGHTING.worldcup;
     hemi.color.setHex(L.hemi.sky); hemi.groundColor.setHex(L.hemi.ground); hemi.intensity = L.hemi.intensity;
     sun.position.set(L.sun.pos[0], L.sun.pos[1], L.sun.pos[2]);
-    sun.color.setHex(L.sun.color); sun.intensity = L.sun.intensity; sun.castShadow = L.sun.shadow;
+    sun.color.setHex(L.sun.color); sun.intensity = L.sun.intensity; sun.castShadow = SHADOWS && L.sun.shadow;
     sun.target.position.set(0, 0, 0); sun.target.updateMatrixWorld();
   }
 
@@ -81,16 +150,19 @@
   const composer = new THREE.EffectComposer(renderer);
   composer.setSize(window.innerWidth, window.innerHeight);
   composer.addPass(new THREE.RenderPass(scene, camera));
-  const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5), 0.35, 0.45, 0.92);
+  const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth * BLOOM_SCALE, window.innerHeight * BLOOM_SCALE), 0.35, 0.45, 0.92);
   composer.addPass(bloomPass);
   composer.addPass(new THREE.ShaderPass(VignetteShader));
-  const fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
-  function setFxaa() {
-    const pr = renderer.getPixelRatio();
-    fxaaPass.material.uniforms.resolution.value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+  let fxaaPass = null;
+  if (USE_FXAA) {
+    fxaaPass = new THREE.ShaderPass(THREE.FXAAShader);
+    function setFxaa() {
+      const pr = renderer.getPixelRatio();
+      fxaaPass.material.uniforms.resolution.value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+    }
+    setFxaa();
+    composer.addPass(fxaaPass);
   }
-  setFxaa();
-  composer.addPass(fxaaPass);
 
   let field = K.Field.create(scene, 'worldcup');
   applyLighting('worldcup');
@@ -98,7 +170,9 @@
   let playerGlow = null, playerAura = null;
   function buildPlayer() {
     if (playerObj) scene.remove(player);
-    playerObj = K.Player.create(scene, PLAYERS[selectedPlayer]);
+    const kit = currentKit();
+    kit.name = career.name; kit.number = career.number; kit.country = kit.label;
+    playerObj = K.Player.create(scene, kit);
     player = playerObj.group;
     ball = player.userData.ball;
     if (!playerGlow) {
@@ -132,7 +206,7 @@
   let speed = BASE_SPEED, distance = 0, starCount = 0, score = 0;
   let nextSpawnDist = 0, nextSpawnGap = 22, runPhase = 0;
   let grace = 0, iframes = 0;
-  let currentWorld = 'worldcup';
+  let currentWorld = LEVELS[career.unlocked - 1] || 'beach';
   let best = 0;
   let introT = 0, introOpp = null, introSwitched = false;
   let invisibleT = 0, ghostOn = false, nextFreeKickAt = 100;
@@ -237,11 +311,15 @@
     setTimeout(() => { clearInterval(iv); loadingFill.style.width = '100%'; fadeOut(loadingScreen, done); }, ms);
   }
 
+  function despawnOpponent(o) { obstacleGroup.remove(o); K.Opponent.release(o); }
+  function despawnStar(b) { starGroup.remove(b); K.Star.release(b); }
+  function despawnPowerup(p) { powerupGroup.remove(p); K.PowerUps.release(p); }
+
   function resetGame() {
     buildPlayer();
-    obstacles.forEach(o => obstacleGroup.remove(o));
-    stars.forEach(b => starGroup.remove(b));
-    powerups.forEach(p => powerupGroup.remove(p));
+    obstacles.forEach(o => despawnOpponent(o));
+    stars.forEach(b => { starGroup.remove(b); K.Star.release(b); });
+    powerups.forEach(p => { powerupGroup.remove(p); K.PowerUps.release(p); });
     obstacles.length = 0; stars.length = 0; powerups.length = 0;
 
     const u = player.userData;
@@ -257,7 +335,7 @@
     nextPenaltyAt = 500; lastPenaltyAt = 0; penaltyIndex = 0;
     slowmoT = 0; penLeadSpawned = false; penLeadActive = false; if (penLead) { scene.remove(penLead); penLead = null; }
     combo = 0; comboTimer = 0; bestCombo = 0;
-    speedBoostT = 0; magnetT = 0; shieldT = PLAYERS[selectedPlayer].shieldStart ? 6 : 0;
+    speedBoostT = 0; magnetT = 0; shieldT = currentKit().shieldStart ? 6 : 0;
     styleBonus = 0; closeCalls = 0; kickoffBlasts = 0; noRollDist = 0;
     shakeT = 0; hitStopT = 0; dyingT = 0;
     invisibleT = 0; ghostOn = false; nextFreeKickAt = 100;
@@ -268,6 +346,7 @@
     invisHud.classList.add('hidden'); freeKick.classList.add('hidden'); powerHud.classList.add('hidden');
     comboEl.classList.add('hidden'); comboEl.classList.remove('broken', 'bump');
     nextSpawnGap = 24; nextSpawnDist = 0;
+    lastUnlocked = career.unlocked;
 
     referee.userData.whistle = true;
     referee.position.set(3, 0, 2);
@@ -279,6 +358,7 @@
   }
 
   function startGame(world) {
+    hideAllOverlays();
     if (world) currentWorld = world;
     field = K.Field.create(scene, currentWorld);
     applyLighting(currentWorld);
@@ -337,6 +417,13 @@
     leaderboard.push(entry);
     leaderboard.sort((a, b) => b.score - a.score);
     leaderboard = leaderboard.slice(0, 5);
+    saveLeaderboard();
+    // ---- career / lifetime progression (persists across runs) ----
+    career.lifetimeGoals += goalCount;
+    career.lifetimeM += d;
+    career.lifetimeStars += starCount;
+    checkUnlocks();
+    saveCareer();
     document.getElementById('finalScore').textContent = d;
     document.getElementById('finalScoreVal').textContent = score;
     document.getElementById('finalStars').textContent = starCount;
@@ -406,10 +493,73 @@
     setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 4000);
   }
 
+  // ---- level / career unlock logic ----
+  function reqMet(level) {
+    const r = UNLOCK_REQ[level]; if (!r) return true;
+    return career.lifetimeGoals >= r.goals && career.lifetimeM >= r.m && career.lifetimeStars >= r.stars;
+  }
+  function reqText(level) {
+    const r = UNLOCK_REQ[level]; if (!r) return '';
+    const parts = [];
+    if (career.lifetimeGoals < r.goals) parts.push((r.goals - career.lifetimeGoals) + ' more goals');
+    if (career.lifetimeM < r.m) parts.push(Math.max(0, Math.ceil(r.m - career.lifetimeM)) + ' more m');
+    if (career.lifetimeStars < r.stars) parts.push(Math.max(0, r.stars - career.lifetimeStars) + ' more ⭐');
+    return parts.length ? 'Reach ' + parts.join(' · ') : '';
+  }
+  // Raise unlocked level for any newly-met requirement (called at game-over).
+  function checkUnlocks() {
+    let changed = false;
+    for (let lvl = career.unlocked + 1; lvl <= LEVELS.length; lvl++) {
+      if (reqMet(lvl)) { career.unlocked = lvl; career.newLevel = lvl; changed = true; }
+      else break;
+    }
+    return changed;
+  }
+  // Mid-run check: project lifetime = saved totals + current run progress, and
+  // unlock the moment the threshold is crossed (run continues — non-interrupting).
+  let lastUnlocked = career.unlocked;
+  function checkUnlocksLive() {
+    for (let lvl = lastUnlocked + 1; lvl <= LEVELS.length; lvl++) {
+      const r = UNLOCK_REQ[lvl]; if (!r) break;
+      const projGoals = career.lifetimeGoals + goalCount;
+      const projM = career.lifetimeM + Math.floor(distance);
+      const projStars = career.lifetimeStars + starCount;
+      if (projGoals >= r.goals && projM >= r.m && projStars >= r.stars) {
+        career.unlocked = lvl; career.newLevel = lvl;
+        lastUnlocked = lvl;
+        const world = LEVELS[lvl - 1];
+        const name = LEVEL_NAMES[world] || world.toUpperCase();
+        const worldName = world === 'beach' ? 'BEACH' : world === 'indoor' ? 'INDOOR' : 'WORLD CUP';
+        const toast = lvl === 2
+          ? 'You did so well — kick off your career and step into ' + name + '.'
+          : 'You made it — stride into ' + name + ' under the lights.';
+        showBanner(worldName + ' UNLOCKED!', toast, 'green');
+        saveCareer();
+        applyUnlocks();
+      } else break;
+    }
+  }
+  // Reflect unlock state onto the world-select cards.
+  function applyUnlocks() {
+    document.querySelectorAll('.lp-world').forEach(card => {
+      const w = card.dataset.world;
+      const idx = LEVELS.indexOf(w) + 1;
+      const locked = idx > career.unlocked;
+      card.classList.toggle('locked', locked);
+      const isNew = (idx === career.unlocked && career.newLevel === idx);
+      const badge = card.querySelector('.wc-new');
+      if (badge) badge.classList.toggle('hidden', !isNew);
+    });
+  }
+  function clearNewBadges() {
+    if (career.newLevel) { career.newLevel = 0; saveCareer(); }
+    applyUnlocks();
+  }
+
   function awardFreeKick() { freeKickReady = true; fkReady.classList.remove('hidden'); }
   function shootFreeKick() {
     freeKickReady = false;
-    invisibleT = PLAYERS[selectedPlayer].blast; // KICKOFF BLAST duration (per-team)
+    invisibleT = currentKit().blast; // KICKOFF BLAST duration (per-kit)
     kickoffBlasts++;
     fovKick = 1; // smooth camera punch
     K.Audio.sfx.whistle();
@@ -567,11 +717,11 @@
     penaltySub.innerHTML = 'Goalkeeper in <b>' + remain.toFixed(0) + ' m</b> — take your shot!';
     penaltyScreen.classList.remove('hidden');
     // clear obstacles + stars ahead so the path is clean
-    for (let i = obstacles.length - 1; i >= 0; i--) { obstacleGroup.remove(obstacles[i]); }
+    for (let i = obstacles.length - 1; i >= 0; i--) { despawnOpponent(obstacles[i]); }
     obstacles.length = 0;
-    for (let i = stars.length - 1; i >= 0; i--) { starGroup.remove(stars[i]); }
+    for (let i = stars.length - 1; i >= 0; i--) { despawnStar(stars[i]); }
     stars.length = 0;
-    for (let i = powerups.length - 1; i >= 0; i--) { powerupGroup.remove(powerups[i]); }
+    for (let i = powerups.length - 1; i >= 0; i--) { despawnPowerup(powerups[i]); }
     powerups.length = 0;
     const built = buildPenaltyGoal();
     penaltyGoal = built.goal; penaltyKeeper = built.keeper;
@@ -829,11 +979,12 @@
   }
 
   function spawnChunk(z) {
+    const DM = DIFFICULTY[currentWorld] || DIFFICULTY.beach;
     if (penKeeperGrace > 0) {
       // no keeper in the way right after a penalty box — only rival runners
       const order = [0, 1, 2];
       for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [order[i], order[j]] = [order[j], order[i]]; }
-      const blockedCount = Math.random() < 0.55 ? 1 : 2;
+      const blockedCount = Math.random() < 0.55 * DM.density ? 1 : 2;
       for (let i = 0; i < blockedCount; i++) spawnDefender(order[i], z);
       spawnStarsOnly(z, order[blockedCount]);
       return;
@@ -841,7 +992,7 @@
     // NOTE: full goalkeepers only appear in the Penalty Box — not on the open track.
     const order = [0, 1, 2];
     for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [order[i], order[j]] = [order[j], order[i]]; }
-    const blockedCount = Math.random() < 0.55 ? 1 : 2;
+    const blockedCount = Math.random() < 0.55 * DM.density ? 1 : 2;
     for (let i = 0; i < blockedCount; i++) spawnDefender(order[i], z);
     spawnStarsOnly(z, order[blockedCount]);
   }
@@ -938,98 +1089,30 @@
   const helpScreen = document.getElementById('helpScreen');
   const helpContinue = document.getElementById('helpContinue');
   const changeWorldBtn = document.getElementById('changeWorldBtn');
+  if (changeWorldBtn) changeWorldBtn.addEventListener('click', showMainMenu);
   const mainMenu = document.getElementById('mainMenu');
   const optionsScreen = document.getElementById('optionsScreen');
   const customizeScreen = document.getElementById('customizeScreen');
   const farewellScreen = document.getElementById('farewellScreen');
 
-  const ALL_OVERLAYS = [mainMenu, optionsScreen, customizeScreen, farewellScreen, worldScreen, helpScreen, overScreen, pauseScreen, loadingScreen];
+  const ALL_OVERLAYS = [mainMenu, optionsScreen, customizeScreen, farewellScreen, worldScreen, helpScreen, overScreen, pauseScreen, loadingScreen,
+    document.getElementById('careerScreen'), document.getElementById('resetModal')];
   function hideAllOverlays() { ALL_OVERLAYS.forEach(el => { if (el) el.classList.add('hidden'); }); }
 
-  function showMainMenu() {
-    hideAllOverlays();
-    showOverlay(mainMenu);
-    state = 'menu';
-  }
+  function showMainMenu() { showCareer(); }
   function showHelp() {
     hideAllOverlays();
     showOverlay(helpScreen);
     state = 'help';
   }
-  function showWorldScreen() {
-    state = 'world'; paused = false;
-    K.Audio.stopMusic(); K.Audio.stopAmbient();
-    hideAllOverlays();
-    const p = PLAYERS[selectedPlayer];
-    const asEl = document.getElementById('playingAs');
-    if (asEl) asEl.textContent = 'PLAYING AS  ' + p.full + '  #' + p.number + '  ·  ' + p.country;
-    showOverlay(worldScreen);
-  }
+  function showWorldScreen() { showCareer(); }
   function showOptions() {
     hideAllOverlays();
     showOverlay(optionsScreen);
     state = 'options';
   }
 
-  // ---- customize: 3D player preview ----
-  let previewRenderer = null, previewScene = null, previewCam = null, previewPlayer = null, previewPhase = 0;
-  function initPreview() {
-    if (previewRenderer) return;
-    const canvas = document.getElementById('previewCanvas');
-    previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    previewRenderer.setSize(240, 310, false);
-    previewScene = new THREE.Scene();
-    previewCam = new THREE.PerspectiveCamera(42, 240 / 310, 0.1, 100);
-    previewCam.position.set(0, 1.85, 5.2);
-    previewCam.lookAt(0, 1.35, 0);
-    previewScene.add(new THREE.HemisphereLight(0xffffff, 0x556070, 1.0));
-    const dl = new THREE.DirectionalLight(0xffffff, 1.25); dl.position.set(3, 6, 4); previewScene.add(dl);
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(2.3, 32),
-      new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 1 }));
-    disc.rotation.x = -Math.PI / 2; previewScene.add(disc);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(2.25, 2.4, 32),
-      new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
-    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.01; previewScene.add(ring);
-  }
-  function setPreview(id) {
-    initPreview();
-    if (previewPlayer) previewScene.remove(previewPlayer.group);
-    previewPlayer = K.Player.create(previewScene, PLAYERS[id]);
-    // show the kit front (chest) to the camera; ball isn't needed in the preview
-    previewPlayer.group.rotation.y = Math.PI;
-    if (previewPlayer.group.userData.ball) previewPlayer.group.userData.ball.visible = false;
-  }
-  function buildPlayerList() {
-    const list = document.getElementById('playerList');
-    if (!list || list.childElementCount) return;
-    Object.keys(PLAYERS).forEach(id => {
-      const p = PLAYERS[id];
-      const card = document.createElement('button');
-      card.className = 'player-card'; card.dataset.player = id;
-      card.innerHTML = '<span class="pc-num">#' + p.number + '</span>' +
-        '<span class="pc-name">' + p.full + '</span>' +
-        '<span class="pc-country">' + p.country + '</span>';
-      card.addEventListener('click', () => selectPlayer(id));
-      list.appendChild(card);
-    });
-  }
-  function selectPlayer(id) {
-    selectedPlayer = id;
-    document.querySelectorAll('.player-card').forEach(c => c.classList.toggle('selected', c.dataset.player === id));
-    const p = PLAYERS[id];
-    const n = document.getElementById('custName'); if (n) n.textContent = p.full;
-    const num = document.getElementById('custNum'); if (num) num.textContent = '#' + p.number;
-    const c = document.getElementById('custCountry'); if (c) c.textContent = p.country;
-    setPreview(id);
-  }
-  function showCustomize() {
-    hideAllOverlays();
-    showOverlay(customizeScreen);
-    state = 'customize';
-    buildPlayerList();
-    selectPlayer(selectedPlayer);
-  }
+  function showCustomize() { showCareer(); }
   function showFarewell() {
     hideAllOverlays();
     showOverlay(farewellScreen);
@@ -1039,36 +1122,175 @@
 
   function startWithLoad() {
     state = 'loading';
-    worldScreen.classList.add('hidden');
     runLoading('assets/loading_bg_' + currentWorld + '.png', () => startGame(), 1100);
   }
 
   if (helpContinue) helpContinue.addEventListener('click', showMainMenu);
-  if (mainMenu) {
-    document.getElementById('startBtn').addEventListener('click', showWorldScreen);
-    document.getElementById('optionsBtn').addEventListener('click', showOptions);
-    document.getElementById('customizeBtn').addEventListener('click', showCustomize);
-    document.getElementById('exitBtn').addEventListener('click', showFarewell);
-    const howto = document.getElementById('howtoBtn');
-    if (howto) howto.addEventListener('click', showHelp);
-  }
   if (optionsScreen) document.getElementById('optionsBack').addEventListener('click', showMainMenu);
-  if (customizeScreen) document.getElementById('custBack').addEventListener('click', showMainMenu);
   if (farewellScreen) document.getElementById('farewellPlay').addEventListener('click', showMainMenu);
 
-  document.querySelectorAll('.world-card').forEach(card => {
+  // ---- lobby world card selection ----
+  document.querySelectorAll('.lp-world').forEach(card => {
     card.addEventListener('click', () => {
-      document.querySelectorAll('.world-card').forEach(c => c.classList.remove('selected'));
+      const w = card.dataset.world;
+      const idx = LEVELS.indexOf(w) + 1;
+      if (idx > career.unlocked) {
+        showBanner('LOCKED', 'Keep playing to unlock!', 'yellow');
+        return;
+      }
+      document.querySelectorAll('.lp-world').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
-      currentWorld = card.dataset.world;
+      currentWorld = w;
     });
   });
-  if (changeWorldBtn) changeWorldBtn.addEventListener('click', showWorldScreen);
+
+  // ---- lobby utility buttons ----
+  const lobbyHowto = document.getElementById('lobbyHowto');
+  if (lobbyHowto) lobbyHowto.addEventListener('click', showHelp);
+  const lobbyOptions = document.getElementById('lobbyOptions');
+  if (lobbyOptions) lobbyOptions.addEventListener('click', showOptions);
+  const lobbyDemo = document.getElementById('lobbyDemo');
+  if (lobbyDemo) lobbyDemo.addEventListener('click', () => {
+    career.unlocked = LEVELS.length;
+    lastUnlocked = career.unlocked;
+    career.newLevel = 0;
+    saveCareer();
+    renderCareerStats();
+    applyUnlocks();
+    showBanner('DEMO MODE', 'All worlds unlocked — go explore!', 'green');
+  });
+
+  // ---- identity inputs (Customize + Career share the same career object) ----
+  function wireIdentityInputs() {
+    const kName = document.getElementById('careerNameInput');
+    const kNum = document.getElementById('careerNumInput');
+    if (kName) kName.addEventListener('input', () => {
+      career.name = kName.value.toString().slice(0, 12).toUpperCase() || 'PLAYER';
+      saveCareer();
+    });
+    if (kNum) kNum.addEventListener('input', () => {
+      let v = parseInt(kNum.value, 10); if (isNaN(v)) v = 0; v = Math.max(0, Math.min(99, v));
+      career.number = v; saveCareer();
+    });
+  }
+  wireIdentityInputs();
+
+  // ---- Lobby (career + customize merged) ----
+  let careerRenderer = null, careerScene = null, careerCam = null, careerPlayer = null, careerPhase = 0;
+  function initCareerPreview() {
+    if (careerRenderer) return;
+    const canvas = document.getElementById('careerCanvas');
+    if (!canvas) return;
+    careerRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    careerRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    careerRenderer.setSize(360, 480, false);
+    careerScene = new THREE.Scene();
+    careerCam = new THREE.PerspectiveCamera(38, 360 / 480, 0.1, 100);
+    careerCam.position.set(0, 1.75, 4.8);
+    careerCam.lookAt(0, 1.3, 0);
+    careerScene.add(new THREE.HemisphereLight(0xdde8ff, 0x3a4050, 0.9));
+    const dl = new THREE.DirectionalLight(0xffffff, 1.35); dl.position.set(2, 5, 4); careerScene.add(dl);
+    const dl2 = new THREE.DirectionalLight(0x6688bb, 0.35); dl2.position.set(-3, 3, -2); careerScene.add(dl2);
+  }
+  function setCareerPreview() {
+    initCareerPreview();
+    if (!careerRenderer) return;
+    const k = KITS[career.kit] || KITS.red;
+    k.name = career.name; k.number = career.number; k.country = k.label;
+    if (careerPlayer) careerScene.remove(careerPlayer.group);
+    careerPlayer = K.Player.create(careerScene, k);
+    careerPlayer.group.rotation.y = Math.PI;
+    if (careerPlayer.group.userData.ball) careerPlayer.group.userData.ball.visible = false;
+  }
+  function renderCareerStats() {
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('careerNameVal', career.name + ' #' + career.number);
+    set('careerKitVal', (KITS[career.kit] || KITS.red).label);
+    set('careerGoals', career.lifetimeGoals);
+    set('careerDist', Math.floor(career.lifetimeM) + ' m');
+    set('careerStars', career.lifetimeStars + ' ⭐');
+    const worldFlags = { beach: '\u26BD', indoor: '\u{1F3DF}', worldcup: '\u{1F3C6}' };
+    LEVELS.forEach((w, i) => {
+      const lvl = i + 1;
+      const row = document.querySelector('.lp-world[data-world="' + w + '"]');
+      if (!row) return;
+      const flag = row.querySelector('.lp-world-flag');
+      if (flag) flag.textContent = worldFlags[w] || '';
+      const locked = lvl > career.unlocked;
+      row.classList.toggle('locked', locked);
+      const st = row.querySelector('.lp-world-status');
+      if (st) st.textContent = locked ? reqText(lvl) : 'UNLOCKED';
+      row.classList.toggle('selected', w === currentWorld && !locked);
+    });
+    document.querySelectorAll('.lp-kit-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.kit === career.kit);
+      const swatch = c.querySelector('.lp-kit-swatch');
+      if (swatch) swatch.style.borderColor = (c.dataset.kit === career.kit) ? '#ffd54f' : 'rgba(255,255,255,.3)';
+    });
+  }
+  function showCareer() {
+    hideAllOverlays();
+    showOverlay(document.getElementById('careerScreen'));
+    const lobbyBg = document.querySelector('#careerScreen .lobby-bg');
+    if (lobbyBg) lobbyBg.style.backgroundImage = "url('assets/lobby_bg_main.png')";
+    state = 'career';
+    setCareerPreview();
+    renderCareerStats();
+    buildLobbyKits();
+    const kName = document.getElementById('careerNameInput');
+    const kNum = document.getElementById('careerNumInput');
+    if (kName) kName.value = career.name;
+    if (kNum) kNum.value = career.number;
+  }
+  function buildLobbyKits() {
+    const list = document.getElementById('kitList');
+    if (!list || list.childElementCount) return;
+    Object.keys(KITS).forEach(key => {
+      const k = KITS[key];
+      const card = document.createElement('button');
+      card.className = 'lp-kit-card'; card.dataset.kit = key;
+      card.innerHTML = '<span class="lp-kit-swatch" style="background:#' + k.jersey.toString(16).padStart(6, '0') + '"></span>' +
+        '<span class="lp-kit-name">' + k.label + '</span>';
+      card.addEventListener('click', () => { career.kit = key; saveCareer(); setCareerPreview(); renderCareerStats(); });
+      list.appendChild(card);
+    });
+  }
+
+  // ---- Reset modal (career-only vs factory) ----
+  function openReset() { const m = document.getElementById('resetModal'); if (m) m.classList.remove('hidden'); }
+  function closeReset() { const m = document.getElementById('resetModal'); if (m) m.classList.add('hidden'); }
+  function doReset(factory) {
+    if (factory) {
+      leaderboard = [];
+      try { localStorage.removeItem(LB_KEY); } catch (e) {}
+    }
+    career = defaultCareer();
+    saveCareer();
+    lastUnlocked = 1;
+    applyUnlocks();
+    closeReset();
+    showMainMenu();
+  }
+  const careerBtn = document.getElementById('careerBtn');
+  if (careerBtn) careerBtn.addEventListener('click', showCareer);
+  const careerBack = document.getElementById('careerBack');
+  if (careerBack) careerBack.addEventListener('click', openReset);
+  const careerPlay = document.getElementById('careerPlay');
+  if (careerPlay) careerPlay.addEventListener('click', () => { saveCareer(); startWithLoad(); });
+  const resetBtns = document.querySelectorAll('[data-reset]');
+  resetBtns.forEach(b => b.addEventListener('click', openReset));
+  const resetCareerBtn = document.getElementById('resetCareerBtn');
+  if (resetCareerBtn) resetCareerBtn.addEventListener('click', () => doReset(false));
+  const resetFactoryBtn = document.getElementById('resetFactoryBtn');
+  if (resetFactoryBtn) resetFactoryBtn.addEventListener('click', () => doReset(true));
+  const resetCancel = document.getElementById('resetCancel');
+  if (resetCancel) resetCancel.addEventListener('click', closeReset);
 
   // first screen: loading -> main menu
   helpScreen.classList.add('hidden');
   worldScreen.classList.add('hidden');
-  runLoading('assets/lobby_bg_main.png', () => { showMainMenu(); }, 1300);
+  try { applyUnlocks(); } catch (e) { console.error(e); }
+  runLoading('assets/lobby_bg_main.png', () => { try { showCareer(); } catch (e) { showFatal((e && e.message) || e); } }, 1300);
 
   // pause controls
   document.getElementById('resumeBtn').addEventListener('click', togglePause);
@@ -1116,7 +1338,7 @@
     const idx = obstacles.indexOf(o);
     if (idx < 0) return;
     obstacles.splice(idx, 1);
-    obstacleGroup.remove(o);
+    despawnOpponent(o);
     particles.smoke(o.position.clone().add(new THREE.Vector3(0, 1, 0)));
   }
   function hitPlayer() {
@@ -1132,7 +1354,7 @@
     // give breathing room: clear defenders right around the player
     for (let i = obstacles.length - 1; i >= 0; i--) {
       if (obstacles[i].position.z > -2 && obstacles[i].position.z < 4) {
-        obstacleGroup.remove(obstacles[i]); obstacles.splice(i, 1);
+        obstacles.splice(i, 1); despawnOpponent(obstacles[i]);
       }
     }
   }
@@ -1149,9 +1371,9 @@
       if (top > cy - 0.7 && u.y < cy + 0.7) {
         starGroup.remove(b); stars.splice(stars.indexOf(b), 1);
         starCount++;
-        combo++; comboTimer = COMBO_TIMEOUT * PLAYERS[selectedPlayer].combo;
+        combo++; comboTimer = COMBO_TIMEOUT * currentKit().combo;
         const mult = comboMult(combo);
-        const gain = Math.round(10 * mult * PLAYERS[selectedPlayer].star);
+        const gain = Math.round(10 * mult * currentKit().star);
         score += gain;
         if (combo > bestCombo) bestCombo = combo;
         particles.starBurst(b.position.clone());
@@ -1195,8 +1417,9 @@
   // ---- update ----
   function update(dt) {
     const u = player.userData;
-    const team = PLAYERS[selectedPlayer];
-    const spd = (BASE_SPEED + Math.min(22, distance / 90)) * team.speed * (speedBoostT > 0 ? 1.4 : 1) * (invisibleT > 0 ? 1.3 : 1);
+    const team = currentKit();
+    const DM = DIFFICULTY[currentWorld] || DIFFICULTY.beach;
+    const spd = (BASE_SPEED + Math.min(22, distance / 90)) * team.speed * DM.speed * (speedBoostT > 0 ? 1.4 : 1) * (invisibleT > 0 ? 1.3 : 1);
     speed = spd; distance += speed * dt;
     u.x += (LANES[u.lane] - u.x) * Math.min(1, dt * 12);
     player.position.x = u.x;
@@ -1219,6 +1442,9 @@
 
     // combo decay
     if (combo > 0) { comboTimer -= dt; if (comboTimer <= 0) breakCombo(); }
+
+    // career: live level-unlock check (non-interrupting toast)
+    checkUnlocksLive();
 
     // power-up timers + HUD
     if (speedBoostT > 0) speedBoostT -= dt;
@@ -1243,7 +1469,7 @@
     if (ghostOn) {
       invisibleT -= dt;
       invisNum.textContent = Math.max(1, Math.ceil(invisibleT));
-      invisFill.style.width = (Math.max(0, invisibleT) / PLAYERS[selectedPlayer].blast * 100) + '%';
+      invisFill.style.width = (Math.max(0, invisibleT) / currentKit().blast * 100) + '%';
       if (invisibleT <= 0) {
         ghostOn = false; invisibleT = 0;
         invisHud.classList.add('hidden');
@@ -1294,7 +1520,7 @@
         if (o.userData.type === 'player' && Math.abs(u.x - o.position.x) > 0.85) awardCloseCall();
         else if (o.userData.type === 'keeper' && u.rolling && u.y > 0 && u.y < 1.6) awardLimbo();
       }
-      if (o.userData.z > DESPAWN_Z) { obstacleGroup.remove(o); obstacles.splice(i, 1); continue; }
+      if (o.userData.z > DESPAWN_Z) { obstacles.splice(i, 1); despawnOpponent(o); continue; }
       checkObstacle(o);
       if (state !== 'playing') return;
     }
@@ -1303,7 +1529,7 @@
       if (magnetT > 0) { b.position.x += (u.x - b.position.x) * Math.min(1, dt * 12); b.position.z += (PLAYER_Z - b.position.z) * Math.min(1, dt * 6); }
       b.position.z += moveAmt; b.userData.z = b.position.z;
       if (b.userData.animate) b.userData.animate(dt);
-      if (b.userData.z > DESPAWN_Z) { starGroup.remove(b); stars.splice(stars.indexOf(b), 1); continue; }
+      if (b.userData.z > DESPAWN_Z) { stars.splice(stars.indexOf(b), 1); despawnStar(b); continue; }
       checkStar(b);
     }
     for (let i = powerups.length - 1; i >= 0; i--) {
@@ -1312,9 +1538,9 @@
       p.position.y = 1.0 + Math.sin(p.userData.bob) * 0.15;
       p.userData.core.rotation.y += dt * 2; p.userData.core.rotation.x += dt * 1.3;
       p.position.z += moveAmt; p.userData.z = p.position.z;
-      if (p.userData.z > DESPAWN_Z) { powerupGroup.remove(p); powerups.splice(i, 1); continue; }
+      if (p.userData.z > DESPAWN_Z) { powerups.splice(i, 1); despawnPowerup(p); continue; }
       if (Math.abs(p.position.z - PLAYER_Z) < 0.9 && Math.abs(u.x - p.position.x) < 1.3) {
-        powerupGroup.remove(p); powerups.splice(i, 1); collectPowerup(p.userData.type);
+        powerups.splice(i, 1); despawnPowerup(p); collectPowerup(p.userData.type);
       }
     }
 
@@ -1440,13 +1666,16 @@
       camera.updateProjectionMatrix();
     }
 
-    composer.render();
+    // Only render the full game scene during active gameplay states
+    if (state === 'playing' || state === 'dying' || state === 'intro' || state === 'penalty') {
+      composer.render();
+    }
 
-    if (state === 'customize' && previewPlayer && previewRenderer) {
-      previewPhase += dt * 7;
-      previewPlayer.animate(previewPhase, false);
-      previewPlayer.group.rotation.y += dt * 0.5;
-      previewRenderer.render(previewScene, previewCam);
+    if (state === 'career' && careerPlayer && careerRenderer) {
+      careerPhase += dt * 7;
+      careerPlayer.animate(careerPhase, false);
+      careerPlayer.group.rotation.y += dt * 0.5;
+      careerRenderer.render(careerScene, careerCam);
     }
 
     requestAnimationFrame(loop);
@@ -1458,7 +1687,10 @@
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
-    bloomPass.setSize(window.innerWidth, window.innerHeight);
-    setFxaa();
+    bloomPass.setSize(window.innerWidth * BLOOM_SCALE, window.innerHeight * BLOOM_SCALE);
+    if (fxaaPass) {
+      const pr = renderer.getPixelRatio();
+      fxaaPass.material.uniforms.resolution.value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+    }
   });
 })();

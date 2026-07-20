@@ -294,7 +294,7 @@
         const BASE_H = 1.2; // front barrier height
         const TOP_H = BASE_H + ROWS * STEP_H; // top of the highest step
         for (let side = -1; side <= 1; side += 2) {
-          for (let i = 0; i < 6; i++) {
+          for (let i = 0; i < 4; i++) {
             const seg = new THREE.Group();
             const frontX = -side * 5; // pitch-facing edge of the stand (local)
             const steps = [];
@@ -370,20 +370,20 @@
       const chants = ['GOAL!', 'VAMOS!', 'ALLEZ!', 'COME ON!', 'OLE!', 'FORZA!'];
       const bannerCols = ['#d94f45', '#3a7ca5', '#2f9e8f', '#e0a63c', '#9c4a86'];
       for (let side = -1; side <= 1; side += 2)
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 3; i++) {
           const txt = chants[(Math.random() * chants.length) | 0];
           const bg = bannerCols[(Math.random() * bannerCols.length) | 0];
           const b = new THREE.Mesh(new THREE.PlaneGeometry(4, 1.6),
             new THREE.MeshBasicMaterial({ map: textTexture(txt, '#' + bg.toString(16).padStart(6, '0'), '#ffffff'),
               side: THREE.DoubleSide }));
-          b.position.set(side * (PITCH_HALF + 4), theme.style === 'indoor' ? 8 : 11, -i * 30);
+          b.position.set(side * (PITCH_HALF + 4), theme.style === 'indoor' ? 8 : 11, -i * 60);
           b.rotation.y = -side * 0.5;
           root.add(b); banners.push(b); track(b, 180);
         }
       // advertising boards at pitch side (indoor closer)
       const adCols = [0x2d4a6b, 0x9c4a86, 0x2f9e8f, 0xe07a3c];
       for (let side = -1; side <= 1; side += 2)
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 6; i++) {
           const ad = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.1, 6),
             new THREE.MeshStandardMaterial({ color: adCols[i % adCols.length], roughness: 1, flatShading: true }));
           ad.position.set(side * (PITCH_HALF + 1.2), 0.55, -i * 12);
