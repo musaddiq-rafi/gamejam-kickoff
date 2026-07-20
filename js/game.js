@@ -922,7 +922,7 @@
       if (penPhaseT < 0.9) penaltySub.innerHTML = 'Goalkeeper in <b>' + Math.max(0, nextPenaltyAt - distance).toFixed(0) + ' m</b> — take your shot!';
       else if (penPhaseT < 1.8) penaltySub.textContent = 'Steady… watch the keeper…';
       else if (penPhaseT < 2.5) { penaltySub.textContent = 'Watch which way he leans!'; penaltySub.classList.add('pulse'); }
-      else { penPhase = 'aim'; penPhaseT = 0; penaltyBar.classList.remove('dimmed'); penaltySub.classList.add('pulse'); penaltySub.innerHTML = 'Shoot the side the keeper <b>isn\'t</b> leaning!'; K.Audio.sfx.whistle(); }
+      else { penPhase = 'aim'; penPhaseT = 0; penaltyBar.classList.remove('dimmed'); penaltySub.classList.add('pulse'); penaltySub.innerHTML = 'Shoot the side the keeper <b>isn\'t</b> leaning! &nbsp;<b>Press SPACE to shoot</b>'; K.Audio.sfx.whistle(); }
     } else if (penPhase === 'aim') {
       // marker sweeps, faster as difficulty rises — it is only an AIM indicator
       const sweepSpeed = 1.6 + penDifficulty * 2.2;
