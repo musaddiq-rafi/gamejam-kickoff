@@ -1096,7 +1096,7 @@
   const farewellScreen = document.getElementById('farewellScreen');
 
   const ALL_OVERLAYS = [mainMenu, optionsScreen, customizeScreen, farewellScreen, worldScreen, helpScreen, overScreen, pauseScreen, loadingScreen,
-    document.getElementById('careerScreen'), document.getElementById('resetModal')];
+    document.getElementById('careerScreen'), document.getElementById('resetModal'), document.getElementById('storyScreen')];
   function hideAllOverlays() { ALL_OVERLAYS.forEach(el => { if (el) el.classList.add('hidden'); }); }
 
   function showMainMenu() { showCareer(); }
@@ -1110,6 +1110,21 @@
     hideAllOverlays();
     showOverlay(optionsScreen);
     state = 'options';
+  }
+  function showStory() {
+    hideAllOverlays();
+    showOverlay(document.getElementById('storyScreen'));
+    state = 'story';
+    const sc = document.querySelector('#storyScreen .story-scroll');
+    if (sc) sc.scrollTop = 0;
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in-view'); });
+      }, { root: sc, threshold: 0.18 });
+      document.querySelectorAll('#storyScreen .story-chapter').forEach(c => io.observe(c));
+    } else {
+      document.querySelectorAll('#storyScreen .story-chapter').forEach(c => c.classList.add('in-view'));
+    }
   }
 
   function showCustomize() { showCareer(); }
@@ -1149,6 +1164,10 @@
   if (lobbyHowto) lobbyHowto.addEventListener('click', showHelp);
   const lobbyOptions = document.getElementById('lobbyOptions');
   if (lobbyOptions) lobbyOptions.addEventListener('click', showOptions);
+  const lobbyStory = document.getElementById('lobbyStory');
+  if (lobbyStory) lobbyStory.addEventListener('click', showStory);
+  const storyBack = document.getElementById('storyBack');
+  if (storyBack) storyBack.addEventListener('click', showCareer);
   const lobbyDemo = document.getElementById('lobbyDemo');
   if (lobbyDemo) lobbyDemo.addEventListener('click', () => {
     career.unlocked = LEVELS.length;

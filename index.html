@@ -279,6 +279,7 @@
   <!-- BOTTOM action bar -->
   <div class="lobby-actions">
     <button class="lobby-btn lobby-play" id="careerPlay">▶ KICK OFF</button>
+    <button class="lobby-btn" id="lobbyStory">STORY</button>
     <button class="lobby-btn" id="lobbyHowto">HOW TO PLAY</button>
     <button class="lobby-btn" id="lobbyOptions">OPTIONS</button>
     <button class="lobby-btn" id="lobbyDemo">DEMO</button>
@@ -301,6 +302,60 @@
   <div class="mm-tag">THANKS FOR PLAYING!</div>
   <div class="subtitle">Hope you enjoyed the rush. Come back and beat your best.</div>
   <button class="btn" id="farewellPlay">PLAY AGAIN</button>
+</div>
+
+<div class="overlay hidden" id="storyScreen">
+  <button class="story-close" id="storyBack" title="Back to lobby">✕</button>
+  <div class="story-scroll">
+
+    <header class="story-hero">
+      <img class="story-hero-img" src="assets/leonel_messi_childhood.png" alt="Lionel Messi as a child in Rosario" />
+      <div class="story-hero-eyebrow">A FOOTBALL LIFE JOURNEY</div>
+      <h1 class="story-hero-title">FROM A ROSARIO BEACH<br>TO THE WORLD CUP</h1>
+      <p class="story-hero-sub">Inspired by Lionel Messi — the little boy from Argentina who kicked off a legend.</p>
+      <div class="story-scroll-hint">scroll to begin ↓</div>
+    </header>
+
+    <article class="story-chapter">
+      <div class="chapter-num">01</div>
+      <h2>The Kickoff</h2>
+      <p>Every great career starts with a single <b>kickoff</b> — the first touch, the first dream. Ours begins on the sandy riverbanks of <b>Rosario, Argentina</b>, where a small boy with a worn-out ball played barefoot against the wind off the Paraná.</p>
+      <figure class="chapter-fig">
+        <img src="assets/loading_bg_beach.png" alt="Rosario beach" loading="lazy" />
+        <figcaption>Rosario — where the journey begins.</figcaption>
+      </figure>
+      <p>No academy, no stadium. Just sand, a wall, and a thousand touches a day. That is where a footballer is really made — long before the lights.</p>
+    </article>
+
+    <article class="story-chapter">
+      <div class="chapter-num">02</div>
+      <h2>The Club</h2>
+      <p>Talent finds its way. The boy leaves home and crosses an ocean to <b>FC Barcelona</b>, the cathedral of football. Under the Camp Nou lights he learns that touch, vision and heart beat raw power. This is the <b>grind</b> — the years of training that turn a promise into a phenomenon.</p>
+      <figure class="chapter-fig">
+        <img src="assets/loading_bg_indoor.png" alt="FC Barcelona arena" loading="lazy" />
+        <figcaption>The club stage — where boys become legends.</figcaption>
+      </figure>
+      <p class="chapter-note">Messi made his Barcelona first-team debut in 2004, aged 17, and went on to become the club's all-time top scorer.</p>
+    </article>
+
+    <article class="story-chapter">
+      <div class="chapter-num">03</div>
+      <h2>The World Cup Finals</h2>
+      <p>The peak. The <b>FIFA World Cup</b> — the loudest stage in sport, where a nation holds its breath. Here the journey comes full circle: the barefoot kid from Rosario, now wearing the number 10, chasing the one trophy that had always escaped him.</p>
+      <figure class="chapter-fig">
+        <img src="assets/loading_bg_worldcup.png" alt="World Cup finals" loading="lazy" />
+        <figcaption>The ultimate kickoff — a nation's dream.</figcaption>
+      </figure>
+      <p class="chapter-note">In 2022, at last, the boy from Rosario lifted the World Cup — completing football's greatest career arc.</p>
+    </article>
+
+    <article class="story-chapter story-finale">
+      <h2>Your Kickoff</h2>
+      <p><i>Kickoff Rush</i> is a tribute to that road: beach, club, World Cup — three arenas, one life. It is fiction, but the feeling is real. Every time you press play, you are that kid again, taking the first touch of a brand-new journey.</p>
+      <p class="story-sign">— KICKOFF RUSH</p>
+    </article>
+
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

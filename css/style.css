@@ -756,5 +756,111 @@ canvas { display: block; }
 .reset-box .subtitle { font-size: 13px; margin: 0; }
 .reset-box .btn, .reset-box .btn-ghost { width: 100%; }
 
+/* ---- story screen (cinematic, scroll-driven) ---- */
+#storyScreen {
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(67,224,122,.12), transparent 60%),
+    linear-gradient(180deg, #070b11 0%, #0b131c 45%, #070a10 100%);
+  opacity: 0; transition: opacity .45s ease;
+}
+#storyScreen:not(.hidden) { opacity: 1; }
+
+.story-close {
+  position: absolute; top: 18px; right: 20px; z-index: 5;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.25); background: rgba(10,16,24,.6);
+  color: #fff; font-size: 18px; line-height: 1; cursor: pointer;
+  backdrop-filter: blur(6px); transition: all .15s ease;
+}
+.story-close:hover { background: rgba(255,80,80,.25); border-color: rgba(255,80,80,.6); transform: rotate(90deg); }
+
+.story-scroll {
+  position: relative; width: 100%; height: 100%; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent;
+}
+.story-scroll::-webkit-scrollbar { width: 7px; }
+.story-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 4px; }
+
+/* hero */
+.story-hero {
+  position: relative; min-height: 92vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; padding: 40px 24px;
+  overflow: hidden;
+}
+.story-hero-img {
+  width: 150px; height: 150px; object-fit: cover; border-radius: 50%;
+  border: 3px solid rgba(255,213,79,.9);
+  box-shadow: 0 0 40px rgba(255,213,79,.4); margin-bottom: 22px;
+  animation: heroFloat 4s ease-in-out infinite;
+}
+@keyframes heroFloat {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-10px); }
+}
+.story-hero-eyebrow {
+  font-size: 12px; font-weight: 800; letter-spacing: 5px; color: #43e07a;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.story-hero-title {
+  font-family: 'Bebas Neue','Montserrat',sans-serif;
+  font-size: clamp(34px, 6vw, 62px); line-height: .98; letter-spacing: 2px;
+  color: #fff; margin: 0 0 14px; text-shadow: 0 4px 30px rgba(0,0,0,.7);
+}
+.story-hero-sub {
+  font-size: 15px; max-width: 520px; line-height: 1.6; color: rgba(255,255,255,.8);
+  margin: 0;
+}
+.story-scroll-hint {
+  position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+  font-size: 12px; letter-spacing: 2px; color: rgba(255,255,255,.5);
+  animation: hintBob 1.8s ease-in-out infinite;
+}
+@keyframes hintBob { 0%,100% { transform: translate(-50%,0); opacity:.5;} 50% { transform: translate(-50%,6px); opacity:1;} }
+
+/* chapters */
+.story-chapter {
+  max-width: 680px; margin: 0 auto 14vh; padding: 0 26px;
+  opacity: 0; transform: translateY(40px);
+  transition: opacity .8s ease, transform .8s ease;
+}
+.story-chapter.in-view { opacity: 1; transform: translateY(0); }
+.chapter-num {
+  font-family: 'Bebas Neue','Montserrat',sans-serif;
+  font-size: 64px; line-height: 1; color: rgba(67,224,122,.25);
+  margin-bottom: -6px;
+}
+.story-chapter h2 {
+  font-family: 'Bebas Neue','Montserrat',sans-serif;
+  font-size: 32px; letter-spacing: 1.5px; color: #fff; margin: 0 0 14px;
+  text-shadow: 0 2px 14px rgba(0,0,0,.5);
+}
+.story-chapter p {
+  font-size: 16px; line-height: 1.75; color: rgba(255,255,255,.86); margin: 0 0 14px;
+}
+.story-chapter b { color: #ffd54f; }
+.story-chapter i { color: #9be86f; }
+.chapter-fig {
+  margin: 18px 0; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 14px 40px rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.1);
+}
+.chapter-fig img { display: block; width: 100%; height: 240px; object-fit: cover; }
+.chapter-fig figcaption {
+  padding: 9px 14px; font-size: 12px; letter-spacing: .5px; color: rgba(255,255,255,.6);
+  background: rgba(0,0,0,.35); text-align: center;
+}
+.chapter-note {
+  border-left: 3px solid #43e07a; padding: 10px 16px; font-size: 14px !important;
+  background: rgba(67,224,122,.08); border-radius: 0 10px 10px 0; color: rgba(255,255,255,.8) !important;
+}
+.story-finale { text-align: center; padding-bottom: 18vh; }
+.story-finale h2 { color: #43e07a; }
+.story-sign { margin-top: 18px; font-family: 'Bebas Neue',sans-serif; font-size: 22px; letter-spacing: 4px; color: #ffd54f; }
+
+/* reveal trigger via IntersectionObserver (set in JS) */
+@media (prefers-reduced-motion: reduce) {
+  .story-chapter { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .story-hero-img, .story-scroll-hint { animation: none !important; }
+}
+
 
 
