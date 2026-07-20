@@ -1419,6 +1419,7 @@
     if (factory) {
       leaderboard = [];
       try { localStorage.removeItem(LB_KEY); } catch (e) {}
+      try { localStorage.removeItem(INTRO_SEEN_KEY); } catch (e) {}
     }
     career = defaultCareer();
     saveCareer();
