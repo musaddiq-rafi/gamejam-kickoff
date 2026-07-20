@@ -1135,6 +1135,19 @@
     });
   });
 
+  // ---- start lobby music on first user gesture (browsers block autoplay) ----
+  let lobbyMusicStarted = false;
+  function startLobbyMusic() {
+    if (lobbyMusicStarted) return;
+    lobbyMusicStarted = true;
+    K.Audio.init();
+    const p = K.Audio.resume();
+    const play = () => { K.Audio.startMusic(); };
+    if (p && p.then) p.then(play); else play();
+  }
+  ['click', 'keydown', 'touchstart'].forEach(ev =>
+    window.addEventListener(ev, startLobbyMusic, { once: true }));
+
   // ---- lobby utility buttons ----
   const lobbyHowto = document.getElementById('lobbyHowto');
   if (lobbyHowto) lobbyHowto.addEventListener('click', showHelp);
@@ -1243,6 +1256,9 @@
   function showCareer() {
     hideAllOverlays();
     showOverlay(document.getElementById('careerScreen'));
+    const p = K.Audio.resume();
+    const play = () => { K.Audio.startMusic(); };
+    if (p && p.then) p.then(play); else play();
     const lobbyBg = document.querySelector('#careerScreen .lobby-bg');
     if (lobbyBg) lobbyBg.style.backgroundImage = "url('assets/lobby_bg_main.png')";
     state = 'career';
